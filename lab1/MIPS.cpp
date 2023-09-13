@@ -25,7 +25,7 @@ class RF
     RF()
     { 
       Registers.resize(32);  
-      Registers[0] = bitset<32> (0);  
+      Registers[0] = bitset<32> (0);  // register 0 set to zero
     }
 
     void ReadWrite(bitset<5> RdReg1, bitset<5> RdReg2, bitset<5> WrtReg, bitset<32> WrtData, bitset<1> WrtEnable)
@@ -73,6 +73,18 @@ class ALU
        * ALU operation depends on the ALUOP, which are definded as ADDU, SUBU, etc. 
        */
       // TODO: implement!
+      switch(ALUOP.to_ulong()){
+        case ADDU:
+        break;
+        case SUBU:
+        break;
+        case AND: ALUresult = oprand1 & oprand2;
+        break;
+        case OR:
+        break; ALUresult = oprand1 | oprand2;
+        case NOR:
+        break;
+      }
       return ALUresult;
     }            
 };
