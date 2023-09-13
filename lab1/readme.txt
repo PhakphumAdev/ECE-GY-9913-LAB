@@ -4,7 +4,7 @@ Lab 1
 Group: (Please put your name and netid here)
 
 Student1 (netid1)
-Student2 (netid2)
+Student2 Vorrapard Kumthongdee (vk2584)
 
 Reference: (Include the reference you use)
 
