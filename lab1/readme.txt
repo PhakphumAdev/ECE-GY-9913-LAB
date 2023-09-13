@@ -3,11 +3,11 @@ Lab 1
 
 Group: (Please put your name and netid here)
 
-Student1 (netid1)
+Student1 Phakphum Artkaew (pa2497)
 Student2 Vorrapard Kumthongdee (vk2584)
 
 Reference: (Include the reference you use)
-
+https://www.geeksforgeeks.org/cpp-bitset-and-its-application/
 
 ***********************************************************
 
