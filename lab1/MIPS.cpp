@@ -132,6 +132,8 @@ class INSMem
        * Read the byte at the ReadAddress and the following three byte,
        * and return the read result. 
        */
+      int first_byte = ReadAddress.to_ulong();
+      Instruction = IMem[first_byte].to_string() + IMem[first_byte+1].to_string() + IMem[first_byte+2].to_string()+ IMem[first_byte+3].to_string();
       return Instruction;     
     }     
 
