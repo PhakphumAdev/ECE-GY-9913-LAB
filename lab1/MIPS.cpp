@@ -74,15 +74,15 @@ class ALU
        */
       // TODO: implement!
       switch(ALUOP.to_ulong()){
-        case ADDU:
+        case ADDU: ALUresult = oprand1.to_ulong() + oprand2.to_ulong();
         break;
-        case SUBU:
+        case SUBU: ALUresult = oprand1.to_ulong() - oprand2.to_ulong();
         break;
         case AND: ALUresult = oprand1 & oprand2;
         break;
-        case OR:
+        case OR: 
         break; ALUresult = oprand1 | oprand2;
-        case NOR:
+        case NOR: ALUresult = ~(oprand1|oprand2);
         break;
       }
       return ALUresult;
