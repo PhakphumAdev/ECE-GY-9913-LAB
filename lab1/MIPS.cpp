@@ -176,7 +176,25 @@ class DataMem
        * If readmem enabled, return the DMem read result as readdata.
        */
       // TODO: implement!
-      return readdata;     
+      // TWO FUNCTIONS ON MEMORY ACCESS: WRITE and READ
+      // CASE: WRITE
+      if (writemem == 1 && readmem == 0) {
+        int address_byte = Address.to_ulong();
+        write_data_string = WriteData.to_string();
+        DMem[address_byte] = write_data_string.slice(0,8);
+        DMem[address_byte+1] = write_data_string.slice(8,16);
+        DMem[address_byte+2] = write_data_string.slice(16,24);
+        DMem[address_byte+3] = write_data_string.slice(24,32);
+        readdata = 0;        
+      } 
+
+      // CASE: READ           
+      if (readmem == 1 && writemem == 0) {
+        int address_byte = Address.to_ulong();
+        readdata = DMem[address_byte].to_string() + DMem[address_byte+1].to_string() + DMem[address_byte+2].to_string()+ DMem[address_byte+3].to_string();
+      } 
+
+      return readdata;
     }   
 
     void OutputDataMem()
