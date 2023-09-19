@@ -17,6 +17,13 @@ using namespace std;
 // we keep it as this large number, but the memory is still 32-bit addressable.
 #define MemSize (65536)
 
+string slice(int start,int end,string input){
+  string ret="";
+  for(int i=start;i<end;i++){
+    ret+=input[i];
+  }
+  return ret;
+}
 
 class RF
 {
@@ -37,7 +44,7 @@ class RF
        * Put the read results to the ReadData1 and ReadData2.
        */
       // TODO: implement!     
-      if (WrtEnable == 0) {
+      if (WrtEnable.to_ulong() == 0) {
         //read       
         ReadData1 = Registers[RdReg1.to_ulong()];
         ReadData2 = Registers[RdReg2.to_ulong()];
@@ -133,7 +140,8 @@ class INSMem
        * and return the read result. 
        */
       int first_byte = ReadAddress.to_ulong();
-      Instruction = IMem[first_byte].to_string() + IMem[first_byte+1].to_string() + IMem[first_byte+2].to_string()+ IMem[first_byte+3].to_string();
+      string instruction = IMem[first_byte].to_string() + IMem[first_byte+1].to_string() + IMem[first_byte+2].to_string()+ IMem[first_byte+3].to_string();
+      Instruction = bitset<32>(instruction);
       return Instruction;     
     }     
 
@@ -178,20 +186,22 @@ class DataMem
       // TODO: implement!
       // TWO FUNCTIONS ON MEMORY ACCESS: WRITE and READ
       // CASE: WRITE
-      if (writemem == 1 && readmem == 0) {
+      if (writemem.to_ulong() == 1 && readmem.to_ulong() == 0) {
         int address_byte = Address.to_ulong();
-        write_data_string = WriteData.to_string();
-        DMem[address_byte] = write_data_string.slice(0,8);
-        DMem[address_byte+1] = write_data_string.slice(8,16);
-        DMem[address_byte+2] = write_data_string.slice(16,24);
-        DMem[address_byte+3] = write_data_string.slice(24,32);
+        string write_data_string = WriteData.to_string();
+        string temp="";
+        DMem[address_byte] = bitset<8>(slice(0,8,write_data_string));
+        DMem[address_byte+1] = bitset<8>(slice(8,16,write_data_string));
+        DMem[address_byte+2] = bitset<8>(slice(16,24,write_data_string));
+        DMem[address_byte+3] = bitset<8>(slice(24,32,write_data_string));
         readdata = 0;        
       } 
 
       // CASE: READ           
-      if (readmem == 1 && writemem == 0) {
+      if (readmem.to_ulong() == 1 && writemem.to_ulong() == 0) {
         int address_byte = Address.to_ulong();
-        readdata = DMem[address_byte].to_string() + DMem[address_byte+1].to_string() + DMem[address_byte+2].to_string()+ DMem[address_byte+3].to_string();
+        string read_data = DMem[address_byte].to_string() + DMem[address_byte+1].to_string() + DMem[address_byte+2].to_string()+ DMem[address_byte+3].to_string();
+        readdata = bitset<32>(read_data);
       } 
 
       return readdata;
@@ -244,18 +254,18 @@ int main()
     bitset<32> currentInstruction = myInsMem.ReadMemory(PC);
 
     // If current instruction is "11111111111111111111111111111111", then break; (exit the while loop)
-    if (currentInstruction == 11111111111111111111111111111111){
+    if (currentInstruction.to_string() == "11111111111111111111111111111111"){
       break;
     }
 
     // decode(Read RF): get opcode and other signals from instruction, decode instruction
-    opcode = currentInstruction.to_string().slice(0,6);     //get opcode
+    opcode = bitset<6>(slice(0,6,currentInstruction.to_string()));     //get opcode
     if (opcode.to_ulong() == 0) {                           // R- type
-      rs = currentInstruction.to_string().slice(6,11);  
-      rt = currentInstruction.to_string().slice(11,16);
-      rd = currentInstruction.to_string().slice(16,21);   
-      shamt = currentInstruction.to_string().slice(21,26);   
-      funct = currentInstruction.to_string().slice(26,32);   
+      rs = bitset<5>(slice(6,11,currentInstruction.to_string()));
+      rt = bitset<5>(slice(11,16,currentInstruction.to_string()));
+      rd = bitset<5>(slice(16,21,currentInstruction.to_string()));  
+      shamt = bitset<5>(slice(21,26,currentInstruction.to_string()));
+      funct = bitset<6>(slice(26,32,currentInstruction.to_string()));  
       // check function in R type
       if (funct.to_ulong() == 0) {                                // sll
         //ALUcode =
