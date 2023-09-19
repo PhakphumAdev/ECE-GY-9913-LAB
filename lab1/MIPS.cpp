@@ -228,13 +228,71 @@ int main()
   INSMem myInsMem;
   DataMem myDataMem;
 
+  //initialized value (edited)
+  int PC = 0;
+  bitset<6> opcode;  
+  bitset<5> rs;
+  bitset<5> rt;
+  bitset<5> rd;
+  bitset<5> shamt;
+  bitset<6> funct;
+  bitset<3> ALUop;
+
   while (1)  // TODO: implement!
   {
     // Fetch: fetch an instruction from myInsMem.
+    bitset<32> currentInstruction = myInsMem.ReadMemory(PC);
 
     // If current instruction is "11111111111111111111111111111111", then break; (exit the while loop)
+    if (currentInstruction == 11111111111111111111111111111111){
+      break;
+    }
 
     // decode(Read RF): get opcode and other signals from instruction, decode instruction
+    opcode = currentInstruction.to_string().slice(0,6);     //get opcode
+    if (opcode.to_ulong() == 0) {                           // R- type
+      rs = currentInstruction.to_string().slice(6,11);  
+      rt = currentInstruction.to_string().slice(11,16);
+      rd = currentInstruction.to_string().slice(16,21);   
+      shamt = currentInstruction.to_string().slice(21,26);   
+      funct = currentInstruction.to_string().slice(26,32);   
+      // check function in R type
+      if (funct.to_ulong() == 0) {                                // sll
+        //ALUcode =
+      }
+      else if (funct.to_ulong() == 2) {                           // srl
+        //ALUcode =
+      }
+      else if (funct.to_ulong() == 32) {                          // add
+        //ALUcode =
+      }
+      else if (funct.to_ulong() == 34) {                          // sub
+        //ALUcode =
+      }
+      else {
+        //ALUcode =
+      }
+
+    }
+    
+    /*
+    if (opcode.to_string() == "100011") {                   // isLoad
+
+    }
+    else if (opcode.to_string() == "101011") {              // isStore
+
+    }
+    else if (opcode.to_string() == "000000") {              // IsBranch
+
+    }
+    else if (opcode.to_string() == "000000") {              // R-type
+
+    }
+    else if (opcode.to_string() == "000010") {              // J-type
+
+    }
+    */
+
 
     // Execute: after decoding, ALU may run and return result
 
@@ -243,6 +301,7 @@ int main()
     // Write back to RF: some operations may write things to RF
 
 
+    PC = PC + 4;
 
     /**** You don't need to modify the following lines. ****/
     myRF.OutputRF(); // dump RF;    
