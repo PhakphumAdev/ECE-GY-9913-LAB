@@ -239,6 +239,7 @@ int main()
   DataMem myDataMem;
 
   //initialized value (edited)
+  bitset<32>Instruction;
   bitset<32> PC = 0;
   bitset<6> opcode;  
   bitset<5> rs;
@@ -249,12 +250,13 @@ int main()
   bitset<16> immediate;
   bitset<3> ALUop;       //ALUop: ADDU (1), SUBU (3), AND (4), OR  (5), NOR (7), doNothing (6)  
   bitset<26> address;
+  bitset<32> BranchAddr;
   int instructionType;    //Type: R-type(0), I-type(1), J-type(2)
 
   while (1)  // TODO: implement!
   {
     // Fetch: fetch an instruction from myInsMem.
-    myInsMem.ReadMemory(PC);
+    Instruction = myInsMem.ReadMemory(PC);
 
     // If current instruction is "11111111111111111111111111111111", then break; (exit the while loop)
     if (Instruction.to_string() == "11111111111111111111111111111111"){
@@ -271,11 +273,11 @@ int main()
       funct = bitset<6>(slice(26,32,Instruction.to_string()));          
       instructionType = 0;
     }
-    else if (opcode.to_ulong() == 2) || (opcode.to_ulong() == 3){         // j & jal, J-type
+    else if ((opcode.to_ulong() == 2) || (opcode.to_ulong() == 3)){         // j & jal, J-type
       address = bitset<26>(slice(6,32,Instruction.to_string()));
       instructionType = 2;
     }  
-    else {                                                                // I-type
+    else{                                                                // I-type
       rs = bitset<5>(slice(6,11,Instruction.to_string()));
       rt = bitset<5>(slice(11,16,Instruction.to_string()));
       immediate = bitset<16>(slice(16,32,Instruction.to_string()));
@@ -310,47 +312,49 @@ int main()
     */
     if (instructionType == 0) {                                             // R-type
       ALUop = bitset<3>(slice(3,6,funct.to_string()));
-      myRF.ReadWrite(rs, rt, 0, 0, 0)
-      myALU.ALUOperation (ALUOP, ReadData1, ReadData2);
+      myRF.ReadWrite(rs, rt, 0, 0, 0);
+      myALU.ALUOperation (ALUop, myRF.ReadData1, myRF.ReadData2);
     }
     else if (instructionType == 1) {                                        // I-type
       if (opcode.to_ulong() == 4) {                // beq
         myRF.ReadWrite(rs, rt, 0, 0, 0);
-        if (ReadData1 == ReadData2) {     //if equal branch to PC + 4 + BranchAddress
-          PC = bitset<32>(slice(0,4,PC.to_string())+address+ 00);   //บรรทัดนี้้ผิด
+        if (myRF.ReadData1 == myRF.ReadData2) {     //if equal branch to PC + 4 + BranchAddress
+          string temp = "00"+immediate.to_string();
+          BranchAddr = bitset<32>(temp);
+          PC = bitset<32>(PC.to_ulong() + 4 + BranchAddr.to_ulong());   //แก้แล้ว ไม่แน่ใจ
         }
         else {                            // if not equal go to PC + 4
-          PC = bitset<32> PC.to_ulong()+4;
+          PC = bitset<32> (PC.to_ulong()+4);
         }
       }
       else if (opcode.to_ulong() == 5) {            // bneq
         myRF.ReadWrite(rs, rt, 0, 0, 0);
-        if (ReadData1 != ReadData2) {     //if not equal branch to PC + 4 + BranchAddress
+        if (myRF.ReadData1 != myRF.ReadData2) {     //if not equal branch to PC + 4 + BranchAddress
           PC = bitset<32>(slice(0,4,PC.to_string())+address+ 00);   //บรรทัดนี้้ผิด
         }
         else {                            // if equal go to PC + 4
-          PC = bitset<32> PC.to_ulong()+4;
+          PC = bitset<32> (PC.to_ulong()+4);
         }
       }
       else if (opcode.to_ulong() == 8) {            // addi
         myRF.ReadWrite(rs, 0, 0, 0, 0);
-        ALUop = bitset<3> 1;
-        myALU.ALUOperation (ALUOP, ReadData1, immediate); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
+        ALUop = bitset<3>(1);
+        myALU.ALUOperation (ALUop, myRF.ReadData1, immediate); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
       }
       else if (opcode.to_ulong() == 9) {            // addiu
         myRF.ReadWrite(rs, 0, 0, 0, 0);
-        ALUop = bitset<3> 1;
-        myALU.ALUOperation (ALUOP, ReadData1, immediate); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
+        ALUop = bitset<3>(1);
+        myALU.ALUOperation (ALUop, myRF.ReadData1, immediate); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
       }
       else if (opcode.to_ulong() == 35) {            // lw
         myRF.ReadWrite(rs, 0, 0, 0, 0);
-        ALUop = bitset<3> 1;    //add
-        myALU.ALUOperation (ALUOP, ReadData1, immediate); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
+        ALUop = bitset<3> (1);    //add
+        myALU.ALUOperation (ALUop, ReadData1, immediate); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
       }
       else if (opcode.to_ulong() == 43) {            // sw
         myRF.ReadWrite(rs, 0, 0, 0, 0);
-        ALUop = bitset<3> 1;    //add
-        myALU.ALUOperation (ALUOP, ReadData1, immediate); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
+        ALUop = bitset<3> (1);    //add
+        myALU.ALUOperation (ALUop, ReadData1, immediate); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
       }
 
     }
@@ -360,7 +364,7 @@ int main()
         PC = bitset<32>(slice(0,4,PC.to_string())+address+ 00);         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
       }
       else if (opcode.to_ulong() == 2) {             // jal
-        myRF.ReadWrite(0, 0, 31, PC.to_ulong() + 4, 1)                  // save the next PC instruction to register 31  ($ra)
+        myRF.ReadWrite(0, 0, 31, PC.to_ulong() + 4, 1);                  // save the next PC instruction to register 31  ($ra)
         address = bitset<26>(slice(6,32,Instruction.to_string()));
         PC = bitset<32>(slice(0,4,PC.to_string())+address+ 00);         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
       }
