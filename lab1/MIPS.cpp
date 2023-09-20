@@ -385,10 +385,10 @@ int main()
     }
     else if (instructionType == 1) {                                        // I-type
       if (opcode.to_ulong() == 35) {            // lw
-        myDataMem.MemoryAccess(ALUresult, 0, 1, 0); 
+        myDataMem.MemoryAccess(myALU.ALUresult, 0, 1, 0); 
       }
       else if (opcode.to_ulong() == 43) {            // sw
-        myDataMem.MemoryAccess (ALUresult, rt, 0, 1) 
+        myDataMem.MemoryAccess (myALU.ALUresult, rt, 0, 1);
       }
     }
     else if (instructionType == 2) {                                        // J-type
@@ -397,7 +397,7 @@ int main()
 
     // Write back to RF: some operations may write things to RF
     if (instructionType == 0) {                                             // R-type    
-      myRF.ReadWrite(0, 0, rd, ALUresult, 1);
+      myRF.ReadWrite(0, 0, rd, myALU.ALUresult, 1);
     }
     else if (instructionType == 1) {                                        // I-type
       if (opcode.to_ulong() == 4) {                // beq
@@ -407,13 +407,13 @@ int main()
         // do nothing
       }
       else if (opcode.to_ulong() == 8) {            // addi
-        myRF.ReadWrite(0, 0, rt, ALUresult, 1);
+        myRF.ReadWrite(0, 0, rt, myALU.ALUresult, 1);
       }
       else if (opcode.to_ulong() == 9) {            // addiu
-        myRF.ReadWrite(0, 0, rt, ALUresult, 1);
+        myRF.ReadWrite(0, 0, rt, myALU.ALUresult, 1);
       }
       else if (opcode.to_ulong() == 35) {            // lw
-        myRF.ReadWrite(0, 0, rt, ALUresult, 1);
+        myRF.ReadWrite(0, 0, rt, myALU.ALUresult, 1);
       }
       else if (opcode.to_ulong() == 43) {            // sw
         // do nothing
