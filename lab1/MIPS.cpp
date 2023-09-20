@@ -320,9 +320,19 @@ int main()
       else if (opcode.to_ulong() == 43) {            // sw
     */
     if (instructionType == 0) {                                             // R-type
-      ALUop = bitset<3>(slice(3,6,funct.to_string()));
-      myRF.ReadWrite(rs, rt, 0, 0, 0);
-      myALU.ALUOperation (ALUop, myRF.ReadData1, myRF.ReadData2);
+      if (funct.to_ulong() == 0) || (funct.to_ulong() == 2) { // sll & srl
+        myRF.ReadWrite(rt, 0, 0, 0, 0);
+      }
+      else if (funct.to_ulong() == 8) {             //jr
+        myRF.ReadWrite(31, 0, 0, 0, 0); //read $rs
+        PC = bitset<32> (ReadData1);
+      }
+      else {                                         // other R-type
+        ALUop = bitset<3>(slice(3,6,funct.to_string()));
+        myRF.ReadWrite(rs, rt, 0, 0, 0);
+        myALU.ALUOperation (ALUop, myRF.ReadData1, myRF.ReadData2);
+      }
+      
     }
     else if (instructionType == 1) {                                        // I-type
       if (opcode.to_ulong() == 4) {                // beq
@@ -397,7 +407,15 @@ int main()
 
     // Write back to RF: some operations may write things to RF
     if (instructionType == 0) {                                             // R-type    
-      myRF.ReadWrite(0, 0, rd, myALU.ALUresult, 1);
+      if (funct.to_ulong() == 0) {      //sll
+        myRF.ReadWrite(0, 0, rd, ReadData1<<shamt, 1);
+      }
+      else if (funct.to_ulong() == 2) { // srl
+        myRF.ReadWrite(0, 0, rd, ReadData1>>shamt, 1);
+      }
+      else {                        //other R-type
+        myRF.ReadWrite(0, 0, rd, myALU.ALUresult, 1);
+      }      
     }
     else if (instructionType == 1) {                                        // I-type
       if (opcode.to_ulong() == 4) {                // beq
