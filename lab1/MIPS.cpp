@@ -260,6 +260,7 @@ int main()
   bitset<3> ALUop;       //ALUop: ADDU (1), SUBU (3), AND (4), OR  (5), NOR (7), doNothing (6)  
   bitset<26> address;
   bitset<32> BranchAddr;
+  bitset<32> JumpAddr;
   int instructionType;    //Type: R-type(0), I-type(1), J-type(2)
 
   while (1)  // TODO: implement!
@@ -339,8 +340,12 @@ int main()
         myRF.ReadWrite(rs, rt, 0, 0, 0);
         if (myRF.ReadData1 == myRF.ReadData2) {     //if equal branch to PC + 4 + BranchAddress
           string temp = "00"+immediate.to_string();
+          string dummy = immediate.to_string();
+          while(temp.length()!=32){
+            temp+=dummy[15];
+          }
           BranchAddr = bitset<32>(temp);
-          PC = bitset<32>(PC.to_ulong() + 4 + BranchAddr.to_ulong());   //แก้แล้ว ไม่แน่ใจ
+          PC = bitset<32>(PC.to_ulong() + 4 + BranchAddr.to_ulong()*4);   //แก้แล้ว ไม่แน่ใจ
         }
         else {                            // if not equal go to PC + 4
           PC = bitset<32> (PC.to_ulong()+4);
@@ -349,7 +354,12 @@ int main()
       else if (opcode.to_ulong() == 5) {            // bneq
         myRF.ReadWrite(rs, rt, 0, 0, 0);
         if (myRF.ReadData1 != myRF.ReadData2) {     //if not equal branch to PC + 4 + BranchAddress
-          PC = bitset<32>(PC.to_ulong() + 4 + BranchAddr.to_ulong());    //บรรทัดนี้้ผิด
+          string temp = "00"+immediate.to_string();
+          string dummy = immediate.to_string();
+          while(temp.length()!=32){
+            temp+=dummy[15];
+          }
+          BranchAddr = bitset<32>(temp);
         }
         else {                            // if equal go to PC + 4
           PC = bitset<32> (PC.to_ulong()+4);
@@ -380,12 +390,12 @@ int main()
     else if (instructionType == 2) {                                        // J-type
       if (opcode.to_ulong() == 2) {                  // j
         address = bitset<26>(slice(6,32,Instruction.to_string()));
-        PC = bitset<32>(slice(0,4,PC.to_string())+address+ 00);         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
+        PC = bitset<32>((slice(0,4,PC.to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
       }
       else if (opcode.to_ulong() == 2) {             // jal
         myRF.ReadWrite(0, 0, 31, PC.to_ulong() + 4, 1);                  // save the next PC instruction to register 31  ($ra)
         address = bitset<26>(slice(6,32,Instruction.to_string()));
-        PC = bitset<32>(slice(0,4,PC.to_string())+address+ 00);         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
+        PC = bitset<32>((slice(0,4,PC.to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
       }
     }
 
@@ -398,7 +408,8 @@ int main()
         myDataMem.MemoryAccess(myALU.ALUresult, 0, 1, 0); 
       }
       else if (opcode.to_ulong() == 43) {            // sw
-        myDataMem.MemoryAccess (myALU.ALUresult, rt, 0, 1);
+        // myDataMem.MemoryAccess (myALU.ALUresult, rt, 0, 1);
+        myDataMem.MemoryAccess(myALU.ALUresult,myRF.ReadData2,0,1); // <- double check this again
       }
     }
     else if (instructionType == 2) {                                        // J-type
