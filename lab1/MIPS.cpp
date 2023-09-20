@@ -395,12 +395,12 @@ int main()
     else if (instructionType == 2) {                                        // J-type
       if (opcode.to_ulong() == 2) {                  // j
         address = bitset<26>(slice(6,32,Instruction.to_string()));
-        PC = bitset<32>((slice(0,4,(PC.to_ulong()+4).to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
+        PC = bitset<32>((slice(0,4,bitset<32>((PC.to_ulong()+4)).to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
       }
       else if (opcode.to_ulong() == 2) {             // jal
         myRF.ReadWrite(0, 0, 31, PC.to_ulong() + 4, 1);                  // save the next PC instruction to register 31  ($ra)
         address = bitset<26>(slice(6,32,Instruction.to_string()));
-        PC = bitset<32>((slice(0,4,(PC.to_ulong()+4).to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
+        PC = bitset<32>((slice(0,4,bitset<32>((PC.to_ulong()+4)).to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
       }
     }
 
