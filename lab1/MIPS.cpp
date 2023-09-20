@@ -17,6 +17,7 @@ using namespace std;
 // we keep it as this large number, but the memory is still 32-bit addressable.
 #define MemSize (65536)
 
+// MIPS is big endian MSB is stored at the lowest address
 string slice(int start,int end,string input){
   string ret="";
   for(int i=start;i<end;i++){
@@ -339,13 +340,17 @@ int main()
       if (opcode.to_ulong() == 4) {                // beq
         myRF.ReadWrite(rs, rt, 0, 0, 0);
         if (myRF.ReadData1 == myRF.ReadData2) {     //if equal branch to PC + 4 + BranchAddress
-          string temp = "00"+immediate.to_string();
-          string dummy = immediate.to_string();
-          while(temp.length()!=32){
-            temp+=dummy[15];
-          }
+          // string temp = "00"+immediate.to_string();
+          // string dummy = immediate.to_string();
+          // while(temp.length()!=32){
+          //   temp+=dummy[15];
+          // }
+          BranchAddr = signExtend(immediate);
+          string temp = BranchAddr.to_string();
+          temp[30] = '0';
+          temp[31] = '0';
           BranchAddr = bitset<32>(temp);
-          PC = bitset<32>(PC.to_ulong() + 4 + BranchAddr.to_ulong()*4);   //แก้แล้ว ไม่แน่ใจ
+          PC = bitset<32>(PC.to_ulong() + 4 + BranchAddr.to_ulong());   //แก้แล้ว ไม่แน่ใจ
         }
         else {                            // if not equal go to PC + 4
           PC = bitset<32> (PC.to_ulong()+4);
@@ -354,12 +359,12 @@ int main()
       else if (opcode.to_ulong() == 5) {            // bneq
         myRF.ReadWrite(rs, rt, 0, 0, 0);
         if (myRF.ReadData1 != myRF.ReadData2) {     //if not equal branch to PC + 4 + BranchAddress
-          string temp = "00"+immediate.to_string();
-          string dummy = immediate.to_string();
-          while(temp.length()!=32){
-            temp+=dummy[15];
-          }
+          BranchAddr = signExtend(immediate);
+          string temp = BranchAddr.to_string();
+          temp[30] = '0';
+          temp[31] = '0';
           BranchAddr = bitset<32>(temp);
+          PC = bitset<32>(PC.to_ulong() + 4 + BranchAddr.to_ulong());   //แก้แล้ว ไม่แน่ใจ
         }
         else {                            // if equal go to PC + 4
           PC = bitset<32> (PC.to_ulong()+4);
@@ -390,12 +395,12 @@ int main()
     else if (instructionType == 2) {                                        // J-type
       if (opcode.to_ulong() == 2) {                  // j
         address = bitset<26>(slice(6,32,Instruction.to_string()));
-        PC = bitset<32>((slice(0,4,PC.to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
+        PC = bitset<32>((slice(0,4,(PC.to_ulong()+4).to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
       }
       else if (opcode.to_ulong() == 2) {             // jal
         myRF.ReadWrite(0, 0, 31, PC.to_ulong() + 4, 1);                  // save the next PC instruction to register 31  ($ra)
         address = bitset<26>(slice(6,32,Instruction.to_string()));
-        PC = bitset<32>((slice(0,4,PC.to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
+        PC = bitset<32>((slice(0,4,(PC.to_ulong()+4).to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
       }
     }
 
@@ -409,7 +414,7 @@ int main()
       }
       else if (opcode.to_ulong() == 43) {            // sw
         // myDataMem.MemoryAccess (myALU.ALUresult, rt, 0, 1);
-        myDataMem.MemoryAccess(myALU.ALUresult,myRF.ReadData2,0,1); // <- double check
+        myDataMem.MemoryAccess(myALU.ALUresult,myRF.ReadData2,0,1); // <- double
       }
     }
     else if (instructionType == 2) {                                        // J-type
@@ -451,6 +456,8 @@ int main()
     else if (instructionType == 2) {                                        // J-type
       //do nothing
     }
+    
+    
 
     /**** You don't need to modify the following lines. ****/
     myRF.OutputRF(); // dump RF;    
