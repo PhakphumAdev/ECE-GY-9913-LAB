@@ -25,6 +25,15 @@ string slice(int start,int end,string input){
   return ret;
 }
 
+bitset<32>signExtend(bitset<16>bit){
+  string extended = bit.to_string();
+  string temp = bit.to_string();
+  while(temp.length()!=32){
+    temp+=extended[15];
+  }
+  bitset<32>result(temp);
+  return result;
+}
 class RF
 {
   public:
@@ -330,7 +339,7 @@ int main()
       else if (opcode.to_ulong() == 5) {            // bneq
         myRF.ReadWrite(rs, rt, 0, 0, 0);
         if (myRF.ReadData1 != myRF.ReadData2) {     //if not equal branch to PC + 4 + BranchAddress
-          PC = bitset<32>(slice(0,4,PC.to_string())+address+ 00);   //บรรทัดนี้้ผิด
+          PC = bitset<32>(PC.to_ulong() + 4 + BranchAddr.to_ulong());    //บรรทัดนี้้ผิด
         }
         else {                            // if equal go to PC + 4
           PC = bitset<32> (PC.to_ulong()+4);
@@ -339,22 +348,22 @@ int main()
       else if (opcode.to_ulong() == 8) {            // addi
         myRF.ReadWrite(rs, 0, 0, 0, 0);
         ALUop = bitset<3>(1);
-        myALU.ALUOperation (ALUop, myRF.ReadData1, immediate); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
+        myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
       }
       else if (opcode.to_ulong() == 9) {            // addiu
         myRF.ReadWrite(rs, 0, 0, 0, 0);
         ALUop = bitset<3>(1);
-        myALU.ALUOperation (ALUop, myRF.ReadData1, immediate); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
+        myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
       }
       else if (opcode.to_ulong() == 35) {            // lw
         myRF.ReadWrite(rs, 0, 0, 0, 0);
         ALUop = bitset<3> (1);    //add
-        myALU.ALUOperation (ALUop, ReadData1, immediate); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
+        myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
       }
       else if (opcode.to_ulong() == 43) {            // sw
         myRF.ReadWrite(rs, 0, 0, 0, 0);
         ALUop = bitset<3> (1);    //add
-        myALU.ALUOperation (ALUop, ReadData1, immediate); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
+        myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
       }
 
     }
