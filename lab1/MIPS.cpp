@@ -409,7 +409,7 @@ int main()
       }
       else if (opcode.to_ulong() == 43) {            // sw
         // myDataMem.MemoryAccess (myALU.ALUresult, rt, 0, 1);
-        myDataMem.MemoryAccess(myALU.ALUresult,myRF.ReadData2,0,1); // <- double check this again
+        myDataMem.MemoryAccess(myALU.ALUresult,myRF.ReadData2,0,1); // <- double check
       }
     }
     else if (instructionType == 2) {                                        // J-type
