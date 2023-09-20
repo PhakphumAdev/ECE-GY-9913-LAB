@@ -263,7 +263,7 @@ int main()
   bitset<32> BranchAddr;
   bitset<32> JumpAddr;
   int instructionType;    //Type: R-type(0), I-type(1), J-type(2)
-
+  bitset<32>tempPC;
   while (1)  // TODO: implement!
   {
     // Fetch: fetch an instruction from myInsMem.
@@ -273,7 +273,7 @@ int main()
     if (Instruction.to_string() == "11111111111111111111111111111111"){
       break;
     }
-
+    tempPC = PC;
     // decode(Read RF): get opcode and other signals from instruction, decode instruction
     opcode = bitset<6>(slice(0,6,Instruction.to_string()));        
     if (opcode.to_ulong() == 0) {                                         // R-type
@@ -458,7 +458,10 @@ int main()
     }
     
     
-
+    if(tempPC == PC){
+     // if PC has not changed at all during the while loop or not Jump/Jal/Enq, we move to the next instruction
+      PC = PC.to_ulong() + 4;
+    }
     /**** You don't need to modify the following lines. ****/
     myRF.OutputRF(); // dump RF;    
   }
