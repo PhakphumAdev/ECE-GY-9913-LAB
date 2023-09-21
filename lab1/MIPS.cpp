@@ -447,7 +447,7 @@ int main()
       else if (opcode.to_ulong() == 35) {            // lw
         ALUop = bitset<3> (1);    //add
         myALU.ALUOperation (ALUop, myDataMem.readdata, signExtend(immediate)); 
-        myRF.ReadWrite(0, 0, rt, myDataMem.readdata, 1);
+        myRF.ReadWrite(0, 0, rt, myALU.ALUresult, 1);
       }
       else if (opcode.to_ulong() == 43) {            // sw
         // do nothing
