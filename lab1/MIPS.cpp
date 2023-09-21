@@ -107,7 +107,7 @@ class ALU
         case AND: ALUresult = oprand1 & oprand2;
         break;
         case OR: 
-        ALUresult = oprand1 | oprand2; break;
+        break; ALUresult = oprand1 | oprand2;
         case NOR: ALUresult = ~(oprand1|oprand2);
         break;
       }
@@ -382,8 +382,6 @@ int main()
       }
       else if (opcode.to_ulong() == 35) {            // lw
         myRF.ReadWrite(rs, 0, 0, 0, 0);
-        ALUop = bitset<3> (1);    //add
-        myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
       }
       else if (opcode.to_ulong() == 43) {            // sw
         myRF.ReadWrite(rs, 0, 0, 0, 0);
@@ -410,7 +408,7 @@ int main()
     }
     else if (instructionType == 1) {                                        // I-type
       if (opcode.to_ulong() == 35) {            // lw
-        myDataMem.MemoryAccess(myALU.ALUresult, 0, 1, 0); 
+        myDataMem.MemoryAccess(myRF.ReadData1, 0, 1, 0); 
       }
       else if (opcode.to_ulong() == 43) {            // sw
         // myDataMem.MemoryAccess (myALU.ALUresult, rt, 0, 1);
@@ -447,6 +445,8 @@ int main()
         myRF.ReadWrite(0, 0, rt, myALU.ALUresult, 1);
       }
       else if (opcode.to_ulong() == 35) {            // lw
+        ALUop = bitset<3> (1);    //add
+        myALU.ALUOperation (ALUop, myDataMem.readdata, signExtend(immediate)); 
         myRF.ReadWrite(0, 0, rt, myDataMem.readdata, 1);
       }
       else if (opcode.to_ulong() == 43) {            // sw
