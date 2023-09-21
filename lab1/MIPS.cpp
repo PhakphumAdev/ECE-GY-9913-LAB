@@ -107,7 +107,7 @@ class ALU
         case AND: ALUresult = oprand1 & oprand2;
         break;
         case OR: 
-        break; ALUresult = oprand1 | oprand2;
+        ALUresult = oprand1 | oprand2; break;
         case NOR: ALUresult = ~(oprand1|oprand2);
         break;
       }
@@ -424,10 +424,10 @@ int main()
     // Write back to RF: some operations may write things to RF
     if (instructionType == 0) {                                             // R-type    
       if (funct.to_ulong() == 0) {      //sll
-        myRF.ReadWrite(0, 0, rd, ReadData1<<shamt.to_ulong(), 1);
+        myRF.ReadWrite(0, 0, rd, myRF.ReadData1<<shamt.to_ulong(), 1);
       }
       else if (funct.to_ulong() == 2) { // srl
-        myRF.ReadWrite(0, 0, rd, ReadData1>>shamt.to_ulong(), 1);
+        myRF.ReadWrite(0, 0, rd, myRF.ReadData1>>shamt.to_ulong(), 1);
       }
       else {                        //other R-type
         myRF.ReadWrite(0, 0, rd, myALU.ALUresult, 1);
@@ -447,7 +447,7 @@ int main()
         myRF.ReadWrite(0, 0, rt, myALU.ALUresult, 1);
       }
       else if (opcode.to_ulong() == 35) {            // lw
-        myRF.ReadWrite(0, 0, rt, readdata, 1);
+        myRF.ReadWrite(0, 0, rt, myDataMem.readdata, 1);
       }
       else if (opcode.to_ulong() == 43) {            // sw
         // do nothing
