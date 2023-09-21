@@ -25,15 +25,22 @@ string slice(int start,int end,string input){
   }
   return ret;
 }
-
 bitset<32>signExtend(bitset<16>bit){
+  // string extended = bit.to_string();
+  // string temp = bit.to_string();
+  // while(temp.length()!=32){
+  //   temp+=extended[15];
+  // }
+  // bitset<32>result(temp);
+  // return result;
   string extended = bit.to_string();
-  string temp = bit.to_string();
-  while(temp.length()!=32){
-    temp+=extended[15];
+  string temp = "";
+  while(temp.length()!=16){
+    temp+=extended[0];
   }
-  bitset<32>result(temp);
-  return result;
+  string res = temp+extended;
+  bitset<32>ret (res);
+  return ret;
 }
 class RF
 {
@@ -61,6 +68,7 @@ class RF
       }
       else {
         //write
+        Registers[WrtReg.to_ulong()] = bitset<32>(0);        
         Registers[WrtReg.to_ulong()] = WrtData;
       }
     }
@@ -107,10 +115,13 @@ class ALU
         case AND: ALUresult = oprand1 & oprand2;
         break;
         case OR: 
-        break; ALUresult = oprand1 | oprand2;
+        ALUresult = oprand1| oprand2;break;
         case NOR: ALUresult = ~(oprand1|oprand2);
         break;
       }
+      cout << "oprand1:" << oprand1 <<"\n";
+      cout << "oprand2:" << oprand2 <<"\n";
+      cout << "inside ALU ALUresult:" << ALUresult << "\n";
       return ALUresult;
     }            
 };
@@ -269,7 +280,7 @@ int main()
     cout << "\nStart each iteration";
     // Fetch: fetch an instruction from myInsMem.
     Instruction = myInsMem.ReadMemory(PC);
-    cout << "\nInstruction:" << instruction;
+    cout << "\nInstruction:" << Instruction;
 
     // If current instruction is "11111111111111111111111111111111", then break; (exit the while loop)
     if (Instruction.to_string() == "11111111111111111111111111111111"){
@@ -387,9 +398,11 @@ int main()
       }
       else if (opcode.to_ulong() == 35) {            // lw
         myRF.ReadWrite(rs, 0, 0, 0, 0);
+        ALUop = bitset<3> (1);    //add
+        myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); 
       }
       else if (opcode.to_ulong() == 43) {            // sw
-        myRF.ReadWrite(rs, 0, 0, 0, 0);
+        myRF.ReadWrite(rs, rt, 0, 0, 0);
         ALUop = bitset<3> (1);    //add
         myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
       }
@@ -413,7 +426,7 @@ int main()
     }
     else if (instructionType == 1) {                                        // I-type
       if (opcode.to_ulong() == 35) {            // lw
-        myDataMem.MemoryAccess(myRF.ReadData1, 0, 1, 0); 
+        myDataMem.MemoryAccess(myALU.ALUresult, 0, 1, 0); 
         cout << "\nread DMem at" << myRF.ReadData1;
         cout << "\nDMem = " << myDataMem.readdata;
       }
@@ -452,10 +465,9 @@ int main()
         myRF.ReadWrite(0, 0, rt, myALU.ALUresult, 1);
       }
       else if (opcode.to_ulong() == 35) {            // lw
-        ALUop = bitset<3> (1);    //add
-        myALU.ALUOperation (ALUop, myDataMem.readdata, signExtend(immediate)); 
-        myRF.ReadWrite(0, 0, rt, myALU.ALUresult, 1);
-        cout << "write back to RF";
+        myRF.ReadWrite(0, 0, rt, myDataMem.readdata, 1);
+        cout << "write back to RF<" << "\n";
+        cout << "ALUresult :" << myALU.ALUresult << "\n";
       }
       else if (opcode.to_ulong() == 43) {            // sw
         // do nothing
