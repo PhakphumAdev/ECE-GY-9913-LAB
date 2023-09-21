@@ -266,8 +266,10 @@ int main()
   bitset<32>tempPC;
   while (1)  // TODO: implement!
   {
+    cout << "\nStart each iteration";
     // Fetch: fetch an instruction from myInsMem.
     Instruction = myInsMem.ReadMemory(PC);
+    cout << "\nInstruction:" << instruction;
 
     // If current instruction is "11111111111111111111111111111111", then break; (exit the while loop)
     if (Instruction.to_string() == "11111111111111111111111111111111"){
@@ -283,16 +285,19 @@ int main()
       shamt = bitset<5>(slice(21,26,Instruction.to_string()));
       funct = bitset<6>(slice(26,32,Instruction.to_string()));          
       instructionType = 0;
+      cout << "R-type" << rs,rt,rd,shamt,funct;
     }
     else if ((opcode.to_ulong() == 2) || (opcode.to_ulong() == 3)){         // j & jal, J-type
       address = bitset<26>(slice(6,32,Instruction.to_string()));
       instructionType = 2;
+      cout << "J-type" << address;
     }  
     else{                                                                // I-type
       rs = bitset<5>(slice(6,11,Instruction.to_string()));
       rt = bitset<5>(slice(11,16,Instruction.to_string()));
       immediate = bitset<16>(slice(16,32,Instruction.to_string()));
       instructionType = 1;
+      cout << "I-type" << rs,rt,immediate;
     }
 
     // Execute: after decoding, ALU may run and return result
@@ -327,7 +332,7 @@ int main()
       }
       else if (funct.to_ulong() == 8) {             //jr
         myRF.ReadWrite(31, 0, 0, 0, 0); //read $rs
-        PC = bitset<32> (myRF.ReadData1);
+        PC = bitset<32> (myRF.ReadData1); 
       }
       else {                                         // other R-type
         ALUop = bitset<3>(slice(3,6,funct.to_string()));
@@ -409,6 +414,8 @@ int main()
     else if (instructionType == 1) {                                        // I-type
       if (opcode.to_ulong() == 35) {            // lw
         myDataMem.MemoryAccess(myRF.ReadData1, 0, 1, 0); 
+        cout << "\nread DMem at" << myRF.ReadData1;
+        cout << "\nDMem = " << myDataMem.readdata;
       }
       else if (opcode.to_ulong() == 43) {            // sw
         // myDataMem.MemoryAccess (myALU.ALUresult, rt, 0, 1);
@@ -448,6 +455,7 @@ int main()
         ALUop = bitset<3> (1);    //add
         myALU.ALUOperation (ALUop, myDataMem.readdata, signExtend(immediate)); 
         myRF.ReadWrite(0, 0, rt, myALU.ALUresult, 1);
+        cout << "write back to RF";
       }
       else if (opcode.to_ulong() == 43) {            // sw
         // do nothing
