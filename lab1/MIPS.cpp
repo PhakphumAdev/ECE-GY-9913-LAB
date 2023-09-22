@@ -120,9 +120,6 @@ class ALU
         case NOR: ALUresult = ~(oprand1|oprand2);
         break;
       }
-      cout << "oprand1:" << oprand1 <<"\n";
-      cout << "oprand2:" << oprand2 <<"\n";
-      cout << "inside ALU ALUresult:" << ALUresult << "\n";
       return ALUresult;
     }            
 };
@@ -278,7 +275,6 @@ int main()
   
   while (1)  // TODO: implement!
   {
-    cout << "\nStart each iteration";
     // Fetch: fetch an instruction from myInsMem.
     Instruction = myInsMem.ReadMemory(PC);
     cout << "\nInstruction:" << Instruction;
@@ -298,19 +294,16 @@ int main()
       shamt = bitset<5>(slice(21,26,Instruction.to_string()));
       funct = bitset<6>(slice(26,32,Instruction.to_string()));          
       instructionType = 0;
-      cout << "R-type" << rs,rt,rd,shamt,funct;
     }
     else if (opcode.to_ulong() == 2) {                                      // J-type
       address = bitset<26>(slice(6,32,Instruction.to_string()));
       instructionType = 2;
-      cout << "J-type" << address;
     }  
-    else  {                                                                  // I-type
+    else  {                                                                 // I-type
       rs = bitset<5>(slice(6,11,Instruction.to_string()));
       rt = bitset<5>(slice(11,16,Instruction.to_string()));
       immediate = bitset<16>(slice(16,32,Instruction.to_string()));
       instructionType = 1;
-      cout << "I-type" << rs,rt,immediate;
     }
 
     // Execute: after decoding, ALU may run and return result   
@@ -334,22 +327,11 @@ int main()
           PC = bitset<32> (PC.to_ulong()+4);
         }
       }
-      else if (opcode.to_ulong() == 9) {            // addiu
+      else {                                       // addiu, lw, sw (opcode.to_ulong() = 9, 35, 43)
         myRF.ReadWrite(rs, 0, 0, 0, 0);
         ALUop = bitset<3>(1);
         myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); 
       }
-      else if (opcode.to_ulong() == 35) {            // lw
-        myRF.ReadWrite(rs, 0, 0, 0, 0);
-        ALUop = bitset<3> (1);    //add
-        myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); 
-      }
-      else if (opcode.to_ulong() == 43) {            // sw
-        myRF.ReadWrite(rs, rt, 0, 0, 0);
-        ALUop = bitset<3> (1);    //add
-        myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
-      }
-
     }
     else if (instructionType == 2) {                                        // j, J-type
         address = bitset<26>(slice(6,32,Instruction.to_string()));
@@ -357,35 +339,31 @@ int main()
     }
 
     // Read/Write Mem: access data memory (myDataMem)
-    if (instructionType == 0) {  /*do nothing*/ }                           // R-type
+    if (instructionType == 0) {/*do nothing*/}                              // R-type
+    else if (instructionType == 2) {/*do nothing  */}                       // J-type
     else if (instructionType == 1) {                                        // I-type
       if (opcode.to_ulong() == 35) {            // lw
         myDataMem.MemoryAccess(myALU.ALUresult, 0, 1, 0); 
-        cout << "\nread DMem at" << myRF.ReadData1;
-        cout << "\nDMem = " << myDataMem.readdata;
       }
       else if (opcode.to_ulong() == 43) {            // sw
-        // myDataMem.MemoryAccess (myALU.ALUresult, rt, 0, 1);
-        myDataMem.MemoryAccess(myALU.ALUresult,myRF.ReadData2,0,1); 
+        myDataMem.MemoryAccess(myALU.ALUresult, myRF.ReadData2, 0,  1); 
       }
     }
-    else if (instructionType == 2) {  /*do nothing  */  }                   // J-type
+    
 
     // Write back to RF: some operations may write things to RF
     if (instructionType == 0) {                                             // R-type    
       myRF.ReadWrite(0, 0, rd, myALU.ALUresult, 1);    
     }
     else if (instructionType == 1) {                                        // I-type
-      if (opcode.to_ulong() == 4) {  /*donothing*/  }   //beq
-      else if (opcode.to_ulong() == 9) {            // addiu
+      if (opcode.to_ulong() == 4) {/*donothing*/}         //beq
+      else if (opcode.to_ulong() == 43) {/*do nothing*/}  //sw
+      else if (opcode.to_ulong() == 9) {                  // addiu
         myRF.ReadWrite(0, 0, rt, myALU.ALUresult, 1);
       }
-      else if (opcode.to_ulong() == 35) {            // lw
+      else if (opcode.to_ulong() == 35) {                 // lw
         myRF.ReadWrite(0, 0, rt, myDataMem.readdata, 1);
-        cout << "write back to RF<" << "\n";
-        cout << "ALUresult :" << myALU.ALUresult << "\n";
-      }
-      else if (opcode.to_ulong() == 43) {  /*do nothing*/ }  //sw
+      }      
     }
     else if (instructionType == 2) {/*do nothing*/}                        // J-type
     
