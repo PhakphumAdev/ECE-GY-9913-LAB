@@ -115,13 +115,11 @@ class ALU
         case AND: ALUresult = oprand1 & oprand2;
         break;
         case OR: 
-        ALUresult = oprand1| oprand2;break;
+        ALUresult = oprand1| oprand2;
+        break;
         case NOR: ALUresult = ~(oprand1|oprand2);
         break;
       }
-      cout << "oprand1:" << oprand1 <<"\n";
-      cout << "oprand2:" << oprand2 <<"\n";
-      cout << "inside ALU ALUresult:" << ALUresult << "\n";
       return ALUresult;
     }            
 };
@@ -274,9 +272,9 @@ int main()
   bitset<32> JumpAddr;
   int instructionType;    //Type: R-type(0), I-type(1), J-type(2)
   bitset<32>tempPC;
+  
   while (1)  // TODO: implement!
   {
-    cout << "\nStart each iteration";
     // Fetch: fetch an instruction from myInsMem.
     Instruction = myInsMem.ReadMemory(PC);
     cout << "\nInstruction:" << Instruction;
@@ -286,32 +284,104 @@ int main()
       break;
     }
     tempPC = PC;
+
     // decode(Read RF): get opcode and other signals from instruction, decode instruction
     opcode = bitset<6>(slice(0,6,Instruction.to_string()));        
-    if (opcode.to_ulong() == 0) {                                         // R-type
+    if (opcode.to_ulong() == 0) {                                            // R-type
       rs = bitset<5>(slice(6,11,Instruction.to_string()));
       rt = bitset<5>(slice(11,16,Instruction.to_string()));
       rd = bitset<5>(slice(16,21,Instruction.to_string()));  
       shamt = bitset<5>(slice(21,26,Instruction.to_string()));
       funct = bitset<6>(slice(26,32,Instruction.to_string()));          
       instructionType = 0;
-      cout << "R-type" << rs,rt,rd,shamt,funct;
     }
-    else if ((opcode.to_ulong() == 2) || (opcode.to_ulong() == 3)){         // j & jal, J-type
+    else if (opcode.to_ulong() == 2) {                                      // J-type
       address = bitset<26>(slice(6,32,Instruction.to_string()));
       instructionType = 2;
-      cout << "J-type" << address;
     }  
-    else{                                                                // I-type
+    else  {                                                                 // I-type
       rs = bitset<5>(slice(6,11,Instruction.to_string()));
       rt = bitset<5>(slice(11,16,Instruction.to_string()));
       immediate = bitset<16>(slice(16,32,Instruction.to_string()));
       instructionType = 1;
-      cout << "I-type" << rs,rt,immediate;
     }
 
-    // Execute: after decoding, ALU may run and return result
-    /*
+    // Execute: after decoding, ALU may run and return result   
+    if (instructionType == 0) {                                             // R-type
+      ALUop = bitset<3>(slice(3,6,funct.to_string()));
+      myRF.ReadWrite(rs, rt, 0, 0, 0);
+      myALU.ALUOperation (ALUop, myRF.ReadData1, myRF.ReadData2);     
+    }
+    else if (instructionType == 1) {                                        // I-type
+      if (opcode.to_ulong() == 4) {                // beq
+        myRF.ReadWrite(rs, rt, 0, 0, 0);
+        if (myRF.ReadData1.to_ulong() == myRF.ReadData2.to_ulong()) {     //if equal branch to PC + 4 + BranchAddress
+          BranchAddr = signExtend(immediate);
+          string temp = BranchAddr.to_string();
+          temp[30] = '0';
+          temp[31] = '0';
+          BranchAddr = bitset<32>(temp);
+          PC = bitset<32>(PC.to_ulong() + 4 + BranchAddr.to_ulong());  
+        }
+        else {                            // if not equal go to PC + 4
+          PC = bitset<32> (PC.to_ulong()+4);
+        }
+      }
+      else {                                       // addiu, lw, sw (opcode.to_ulong() = 9, 35, 43)
+        myRF.ReadWrite(rs, 0, 0, 0, 0);
+        ALUop = bitset<3>(1);
+        myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); 
+      }
+    }
+    else if (instructionType == 2) {                                        // j, J-type
+        address = bitset<26>(slice(6,32,Instruction.to_string()));
+        PC = bitset<32>((slice(0,4,bitset<32>((PC.to_ulong()+4)).to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00 
+    }
+
+    // Read/Write Mem: access data memory (myDataMem)
+    if (instructionType == 0) {/*do nothing*/}                              // R-type
+    else if (instructionType == 2) {/*do nothing  */}                       // J-type
+    else if (instructionType == 1) {                                        // I-type
+      if (opcode.to_ulong() == 35) {            // lw
+        myDataMem.MemoryAccess(myALU.ALUresult, 0, 1, 0); 
+      }
+      else if (opcode.to_ulong() == 43) {            // sw
+        myDataMem.MemoryAccess(myALU.ALUresult, myRF.ReadData2, 0,  1); 
+      }
+    }
+    
+
+    // Write back to RF: some operations may write things to RF
+    if (instructionType == 0) {                                             // R-type    
+      myRF.ReadWrite(0, 0, rd, myALU.ALUresult, 1);    
+    }
+    else if (instructionType == 1) {                                        // I-type
+      if (opcode.to_ulong() == 4) {/*donothing*/}         //beq
+      else if (opcode.to_ulong() == 43) {/*do nothing*/}  //sw
+      else if (opcode.to_ulong() == 9) {                  // addiu
+        myRF.ReadWrite(0, 0, rt, myALU.ALUresult, 1);
+      }
+      else if (opcode.to_ulong() == 35) {                 // lw
+        myRF.ReadWrite(0, 0, rt, myDataMem.readdata, 1);
+      }      
+    }
+    else if (instructionType == 2) {/*do nothing*/}                        // J-type
+    
+    
+    if(tempPC == PC){
+     // if PC has not changed at all during the while loop or not Jump/Jal/Enq, we move to the next instruction
+      PC = bitset<32>(PC.to_ulong() + 4);
+    }
+    /**** You don't need to modify the following lines. ****/
+    myRF.OutputRF(); // dump RF;    
+  }
+  myDataMem.OutputDataMem(); // dump data mem
+
+  return 0;
+}
+
+
+ /*
       // check function in R type
       if (funct.to_ulong() == 0) {                 // sll
       else if (funct.to_ulong() == 2) {            // srl
@@ -336,154 +406,3 @@ int main()
       else if (opcode.to_ulong() == 35) {            // lw
       else if (opcode.to_ulong() == 43) {            // sw
     */
-    if (instructionType == 0) {                                             // R-type
-      // if ((funct.to_ulong() == 0) || (funct.to_ulong() == 2)) { // sll & srl
-      //   myRF.ReadWrite(rt, 0, 0, 0, 0);
-      // }
-      // else if (funct.to_ulong() == 8) {             //jr
-      //   myRF.ReadWrite(31, 0, 0, 0, 0); //read $rs
-      //   PC = bitset<32> (myRF.ReadData1); 
-      // }
-      // else {                                         // other R-type
-        ALUop = bitset<3>(slice(3,6,funct.to_string()));
-        myRF.ReadWrite(rs, rt, 0, 0, 0);
-        myALU.ALUOperation (ALUop, myRF.ReadData1, myRF.ReadData2);
-      // }      
-    }
-    else if (instructionType == 1) {                                        // I-type
-      if (opcode.to_ulong() == 4) {                // beq
-        myRF.ReadWrite(rs, rt, 0, 0, 0);
-        // myRF.ReadWrite(0, rt, 0, 0, 0);
-        if (myRF.ReadData1.to_ulong() == myRF.ReadData2.to_ulong()) {     //if equal branch to PC + 4 + BranchAddress
-          // string temp = "00"+immediate.to_string();
-          // string dummy = immediate.to_string();
-          // while(temp.length()!=32){
-          //   temp+=dummy[15];
-          // }
-          BranchAddr = signExtend(immediate);
-          string temp = BranchAddr.to_string();
-          temp[30] = '0';
-          temp[31] = '0';
-          BranchAddr = bitset<32>(temp);
-          PC = bitset<32>(PC.to_ulong() + 4 + BranchAddr.to_ulong());   //แก้แล้ว ไม่แน่ใจ
-        }
-        else {                            // if not equal go to PC + 4
-          PC = bitset<32> (PC.to_ulong()+4);
-        }
-      }
-      // else if (opcode.to_ulong() == 5) {            // bneq
-      //   myRF.ReadWrite(rs, rt, 0, 0, 0);
-      //   if (myRF.ReadData1.to_ulong() != myRF.ReadData2.to_ulong()) {     //if not equal branch to PC + 4 + BranchAddress
-      //     BranchAddr = signExtend(immediate);
-      //     string temp = BranchAddr.to_string();
-      //     temp[30] = '0';
-      //     temp[31] = '0';
-      //     BranchAddr = bitset<32>(temp);
-      //     PC = bitset<32>(PC.to_ulong() + 4 + BranchAddr.to_ulong());   //แก้แล้ว ไม่แน่ใจ
-      //   }
-      //   else {                            // if equal go to PC + 4
-      //     PC = bitset<32> (PC.to_ulong()+4);
-      //   }
-      // }
-      else if (opcode.to_ulong() == 8) {            // addi
-        myRF.ReadWrite(rs, 0, 0, 0, 0);
-        ALUop = bitset<3>(1);
-        myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
-      }
-      else if (opcode.to_ulong() == 9) {            // addiu
-        myRF.ReadWrite(rs, 0, 0, 0, 0);
-        ALUop = bitset<3>(1);
-        myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
-      }
-      else if (opcode.to_ulong() == 35) {            // lw
-        myRF.ReadWrite(rs, 0, 0, 0, 0);
-        ALUop = bitset<3> (1);    //add
-        myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); 
-      }
-      else if (opcode.to_ulong() == 43) {            // sw
-        myRF.ReadWrite(rs, rt, 0, 0, 0);
-        ALUop = bitset<3> (1);    //add
-        myALU.ALUOperation (ALUop, myRF.ReadData1, signExtend(immediate)); //บรรทัดนี้ผิด ต้องเป็น SignExtImm
-      }
-
-    }
-    else if (instructionType == 2) {                                        // J-type
-      // if (opcode.to_ulong() == 2) {                  // j
-        address = bitset<26>(slice(6,32,Instruction.to_string()));
-        PC = bitset<32>((slice(0,4,bitset<32>((PC.to_ulong()+4)).to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
-      // }
-      // else if (opcode.to_ulong() == 2) {             // jal
-      //   myRF.ReadWrite(0, 0, 31, PC.to_ulong() + 4, 1);                  // save the next PC instruction to register 31  ($ra)
-      //   address = bitset<26>(slice(6,32,Instruction.to_string()));
-      //   PC = bitset<32>((slice(0,4,bitset<32>((PC.to_ulong()+4)).to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00    //ฝากแก้แหน่ กุงง
-      // }
-    }
-
-    // Read/Write Mem: access data memory (myDataMem)
-    if (instructionType == 0) {                                             // R-type  
-      //do nothing
-    }
-    else if (instructionType == 1) {                                        // I-type
-      if (opcode.to_ulong() == 35) {            // lw
-        myDataMem.MemoryAccess(myALU.ALUresult, 0, 1, 0); 
-        cout << "\nread DMem at" << myRF.ReadData1;
-        cout << "\nDMem = " << myDataMem.readdata;
-      }
-      else if (opcode.to_ulong() == 43) {            // sw
-        // myDataMem.MemoryAccess (myALU.ALUresult, rt, 0, 1);
-        myDataMem.MemoryAccess(myALU.ALUresult,myRF.ReadData2,0,1); // <- double
-      }
-    }
-    else if (instructionType == 2) {                                        // J-type
-      //do nothing
-    }
-
-    // Write back to RF: some operations may write things to RF
-    if (instructionType == 0) {                                             // R-type    
-      // if (funct.to_ulong() == 0) {      //sll
-      //   myRF.ReadWrite(0, 0, rd, myRF.ReadData1<<shamt.to_ulong(), 1);
-      // }
-      // else if (funct.to_ulong() == 2) { // srl
-      //   myRF.ReadWrite(0, 0, rd, myRF.ReadData1>>shamt.to_ulong(), 1);
-      // }
-        myRF.ReadWrite(0, 0, rd, myALU.ALUresult, 1);
-      // }      
-    }
-    else if (instructionType == 1) {                                        // I-type
-      if (opcode.to_ulong() == 4) {                // beq
-        // do nothing
-      }
-      else if (opcode.to_ulong() == 5) {            // bneq
-        // do nothing
-      }
-      else if (opcode.to_ulong() == 8) {            // addi
-        myRF.ReadWrite(0, 0, rt, myALU.ALUresult, 1);
-      }
-      else if (opcode.to_ulong() == 9) {            // addiu
-        myRF.ReadWrite(0, 0, rt, myALU.ALUresult, 1);
-      }
-      else if (opcode.to_ulong() == 35) {            // lw
-        myRF.ReadWrite(0, 0, rt, myDataMem.readdata, 1);
-        cout << "write back to RF<" << "\n";
-        cout << "ALUresult :" << myALU.ALUresult << "\n";
-      }
-      else if (opcode.to_ulong() == 43) {            // sw
-        // do nothing
-      }
-    }
-    else if (instructionType == 2) {                                        // J-type
-      //do nothing
-    }
-    
-    
-    if(tempPC == PC){
-     // if PC has not changed at all during the while loop or not Jump/Jal/Enq, we move to the next instruction
-      PC = bitset<32>(PC.to_ulong() + 4);
-    }
-    /**** You don't need to modify the following lines. ****/
-    myRF.OutputRF(); // dump RF;    
-  }
-  myDataMem.OutputDataMem(); // dump data mem
-
-  return 0;
-}
