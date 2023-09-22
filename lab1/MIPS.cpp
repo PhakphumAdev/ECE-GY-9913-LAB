@@ -303,10 +303,11 @@ int main()
     if (instructionType == 0) {                                             // R-type
       ALUop = bitset<3>(slice(3,6,funct.to_string()));
       myRF.ReadWrite(rs, rt, 0, 0, 0);
-      myALU.ALUOperation (ALUop, myRF.ReadData1, myRF.ReadData2);     
+      myALU.ALUOperation (ALUop, myRF.ReadData1, myRF.ReadData2);     // <-- double check
+      // msb is at 0
     }
     else if (instructionType == 1) {                                        // I-type
-      if (opcode.to_ulong() == 4) {                // beq
+      if (opcode.to_ulong() == 4) {                // beq***
         myRF.ReadWrite(rs, rt, 0, 0, 0);
         if (myRF.ReadData1.to_ulong() == myRF.ReadData2.to_ulong()) {     //if equal branch to PC + 4 + BranchAddress
           BranchAddr = signExtend(immediate);
@@ -366,7 +367,7 @@ int main()
     
     if(tempPC == PC){
      // if PC has not changed at all during the while loop or not Jump/Jal/Enq, we move to the next instruction
-      PC = bitset<32>(PC.to_ulong() + 4);//<--- probably wrong 
+      PC = bitset<32>(PC.to_ulong() + 4);
     }
     /**** You don't need to modify the following lines. ****/
     myRF.OutputRF(); // dump RF;    
