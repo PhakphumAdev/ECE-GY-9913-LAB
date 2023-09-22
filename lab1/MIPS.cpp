@@ -340,7 +340,7 @@ int main()
 
     // Read/Write Mem: access data memory (myDataMem)
     if (instructionType == 0) {/*do nothing*/}                              // R-type
-    else if (instructionType == 2) {/*do nothing  */}                       // J-type
+    else if (instructionType == 2) {/*do nothing*/}                         // J-type
     else if (instructionType == 1) {                                        // I-type
       if (opcode.to_ulong() == 35) {            // lw
         myDataMem.MemoryAccess(myALU.ALUresult, 0, 1, 0); 
