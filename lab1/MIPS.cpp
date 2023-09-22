@@ -26,14 +26,20 @@ string slice(int start,int end,string input){
   return ret;
 }
 bitset<32>signExtend(bitset<16>bit){
+  // string extended = bit.to_string();
+  // string temp = bit.to_string();
+  // while(temp.length()!=32){
+  //   temp+=extended[15];
+  // }
+  // bitset<32>result(temp);
+  // return result;
   string extended = bit.to_string();
-  char sign_bit = extended[0];
   string temp = "";
   while(temp.length()!=16){
-    temp+=sign_bit;
+    temp+=extended[0];
   }
-  temp+=extended;
-  bitset<32>ret (temp);
+  string res = temp+extended;
+  bitset<32>ret (res);
   return ret;
 }
 class RF
@@ -263,6 +269,7 @@ int main()
   bitset<3> ALUop;       //ALUop: ADDU (1), SUBU (3), AND (4), OR  (5), NOR (7), doNothing (6)  
   bitset<26> address;
   bitset<32> BranchAddr;
+  bitset<32> JumpAddr;
   int instructionType;    //Type: R-type(0), I-type(1), J-type(2)
   bitset<32>tempPC;
   
@@ -301,7 +308,21 @@ int main()
 
     // Execute: after decoding, ALU may run and return result   
     if (instructionType == 0) {                                             // R-type
-      ALUop = bitset<3>(slice(3,6,funct.to_string()));
+      if (funct.to_ulong() == 33) { //addu
+        ALUop = ADDU;
+      }
+      else if (funct.to_ulong() == 35) {  // subu
+        ALUop = SUBU;
+      }
+      else if (funct.to_ulong() == 36) {  // and
+        ALUop = AND;
+      }
+      else if (funct.to_ulong() == 37) {  // or
+        ALUop = OR;
+      }
+      else if (funct.to_ulong() == 39) {  // nor
+        ALUop = NOR;
+      }
       myRF.ReadWrite(rs, rt, 0, 0, 0);
       myALU.ALUOperation (ALUop, myRF.ReadData1, myRF.ReadData2);     
     }
@@ -328,10 +349,7 @@ int main()
     }
     else if (instructionType == 2) {                                        // j, J-type
         address = bitset<26>(slice(6,32,Instruction.to_string()));
-        unsigned long nextPCDec = PC.to_ulong() + 4;
-        bitset<32>nextPC(nextPCDec);  
-        string newPC = slice(0,4,nextPC.to_string())+address.to_string()+"00";
-        PC = bitset<32> (newPC);         // set next PC address to [0:4]PC + [5:30]address + 00 
+        PC = bitset<32>((slice(0,4,bitset<32>((PC.to_ulong()+4)).to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00 
     }
 
     // Read/Write Mem: access data memory (myDataMem)
@@ -366,7 +384,7 @@ int main()
     
     if(tempPC == PC){
      // if PC has not changed at all during the while loop or not Jump/Jal/Enq, we move to the next instruction
-      PC = bitset<32>(PC.to_ulong() + 4);//<--- probably wrong 
+      PC = bitset<32>(PC.to_ulong() + 4);
     }
     /**** You don't need to modify the following lines. ****/
     myRF.OutputRF(); // dump RF;    
@@ -375,30 +393,3 @@ int main()
 
   return 0;
 }
-
-
- /*
-      // check function in R type
-      if (funct.to_ulong() == 0) {                 // sll
-      else if (funct.to_ulong() == 2) {            // srl
-      else if (funct.to_ulong() == 8) {            // jr
-      else if (funct.to_ulong() == 18) {           // mult
-      else if (funct.to_ulong() == 19) {           // multu
-      else if (funct.to_ulong() == 26) {           // div
-      else if (funct.to_ulong() == 27) {           // divu
-      else if (funct.to_ulong() == 32) {           // add
-      else if (funct.to_ulong() == 33) {           // addu
-      else if (funct.to_ulong() == 34) {           // sub
-      else if (funct.to_ulong() == 35) {           // subu
-      else if (funct.to_ulong() == 36) {           // and
-      else if (funct.to_ulong() == 37) {            // or
-      else if (funct.to_ulong() == 39) {            // nor
-      // check opcode in I type
-      if (opcode.to_ulong() == 4) {                // beq
-      else if (opcode.to_ulong() == 5) {            // bneq
-      else if (opcode.to_ulong() == 8) {            // addi
-      else if (opcode.to_ulong() == 9) {            // addiu
-      else if (opcode.to_ulong() == 12) {            // andi
-      else if (opcode.to_ulong() == 35) {            // lw
-      else if (opcode.to_ulong() == 43) {            // sw
-    */
