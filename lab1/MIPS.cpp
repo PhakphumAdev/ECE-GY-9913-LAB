@@ -26,17 +26,11 @@ string slice(int start,int end,string input){
   return ret;
 }
 bitset<32>signExtend(bitset<16>bit){
-  // string extended = bit.to_string();
-  // string temp = bit.to_string();
-  // while(temp.length()!=32){
-  //   temp+=extended[15];
-  // }
-  // bitset<32>result(temp);
-  // return result;
   string extended = bit.to_string();
   string temp = "";
+  char sign_bit = extended[0];
   while(temp.length()!=16){
-    temp+=extended[0];
+    temp+=sign_bit;
   }
   string res = temp+extended;
   bitset<32>ret (res);
@@ -350,7 +344,10 @@ int main()
     }
     else if (instructionType == 2) {                                        // j, J-type
         address = bitset<26>(slice(6,32,Instruction.to_string()));
-        PC = bitset<32>((slice(0,4,bitset<32>((PC.to_ulong()+4)).to_string()))+address.to_string()+ "00");         // set next PC address to [0:4]PC + [5:30]address + 00 
+        unsigned long nextPCDec = PC.to_ulong() + 4;
+        bitset<32>nextPC(nextPCDec);  
+        string newPC = slice(0,4,nextPC.to_string())+address.to_string()+"00";
+        PC = bitset<32> (newPC);         // set next PC address to [0:4]PC + [5:30]address + 00 
     }
 
     // Read/Write Mem: access data memory (myDataMem)
