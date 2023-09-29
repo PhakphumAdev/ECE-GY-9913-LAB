@@ -287,10 +287,15 @@ int main()
     //Initialize first state
     state.IF.PC = 0;
     state.IF.nop = 0;
-    state.ID.nop = 1;
-    state.EX.nop = 1;
+    state.ID.nop = 0;
+    state.EX.nop = 0;
     state.MEM.nop = 1;
     state.WB.nop = 1;
+
+    // Clear garbage
+    state.EX = {0,0,0,0,0,0,0,0,0,0,0,0};
+    state.MEM = {0,0,0,0,0,0,0,0,1};
+    state.WB = {0,0,0,0,0,1};
 
 
 			
@@ -447,7 +452,8 @@ int main()
         printState(newState, cycle); //print states after executing cycle 0, cycle 1, cycle 2 ... 
        
         state = newState; /*** The end of the cycle and updates the current state with the values calculated in this cycle. csa23 ***/ 
-                	
+
+        cycle++;                	
     }
     
     myRF.outputRF(); // dump RF;	
