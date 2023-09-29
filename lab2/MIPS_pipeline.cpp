@@ -351,7 +351,7 @@ int main()
                 }             
             }  
             else {                                  // I-type
-                newState.MEM.ALUresult = bitset<32> (state.EX.Read_data1.to_ulong() + state.EX.Imm.to_ulong() );
+                newState.MEM.ALUresult = bitset<32> (state.EX.Read_data1.to_ulong() + signExtend(state.EX.Imm.to_ulong()) );
                 if (state.EX.rd_mem == 1) {         //lw
                     newState.MEM.wrt_enable = 1;
                     newState.MEM.rd_mem = 1;
