@@ -250,6 +250,17 @@ void printState(stateStruct state, int cycle)
     printstate.close();
 }
  
+bitset<32>signExtend(bitset<16>bit){
+  string extended = bit.to_string();
+  string temp = "";
+  char sign_bit = extended[0];
+  while(temp.length()!=16){
+    temp+=sign_bit;
+  }
+  string res = temp+extended;
+  bitset<32>ret (res);
+  return ret;
+}
 
 int main()
 {
@@ -257,8 +268,8 @@ int main()
     RF myRF;
     INSMem myInsMem;
     DataMem myDataMem;
-			
-             
+	stateStruct state,newState;
+    int cycle=0;
     while (1) {
 
         /* --------------------- WB stage --------------------- */
