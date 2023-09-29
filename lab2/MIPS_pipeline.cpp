@@ -299,7 +299,9 @@ int main()
 
         /* --------------------- WB stage --------------------- */
         if (state.WB.nop != 1) {
-            myRF.writeRF(state.WB.Wrt_reg_addr, state.WB.Wrt_data);                     
+            if (state.WB.wrt_enable == 1) {
+                myRF.writeRF(state.WB.Wrt_reg_addr, state.WB.Wrt_data);
+            }                                 
         }
         else {
             newState.WB.nop = 1;
@@ -313,6 +315,13 @@ int main()
             newState.WB.Rt = state.MEM.Rt;
             newState.WB.Wrt_reg_addr = state.MEM.Wrt_reg_addr;
             newState.WB.wrt_enable = state.MEM.wrt_enable;
+
+            if (state.MEM.rd_mem == 1) {        //lw
+                newState.WB.Wrt_data = myDataMem.readDataMem(state.MEM.ALUresult);
+            }
+            if (state.MEM.wrt_mem == 1) {       //sw
+                myDataMem.writeDataMem(state.MEM.ALUresult, state.MEM.Store_data);
+            }
         }       
         else {
             newState.MEM.nop = 1;
@@ -322,27 +331,38 @@ int main()
         /* --------------------- EX stage --------------------- */
         if (state.EX.nop != 1) {
             newState.MEM.nop = 0;
+            newState.MEM.ALUresult = 0;
+            newState.MEM.Store_data = 0;
+            newState.MEM.Rs = state.EX.Rs;
+            newState.MEM.Rt = state.EX.Rt;
+            newState.MEM.Wrt_reg_addr = state.EX.Wrt_reg_addr;
+            newState.MEM.wrt_enable = 0;  
+            newState.MEM.rd_mem = 0;
+            newState.MEM.wrt_mem = 0;
+
+
             if (state.EX.is_I_type == 0) {    // R-type
+                newState.MEM.wrt_enable = 1;
                 if (state.EX.alu_op == 1) {
                     newState.MEM.ALUresult = bitset<32> (state.EX.Read_data1.to_ulong() + state.EX.Read_data2.to_ulong());
                 }
                 else {
                     newState.MEM.ALUresult = bitset<32> (state.EX.Read_data1.to_ulong() - state.EX.Read_data2.to_ulong());
-                }
-                newState.MEM.Store_data = 0;
-                newState.MEM.Rs = state.EX.Rs;
-                newState.MEM.Rt = state.EX.Rt;
-                newState.MEM.Wrt_reg_addr = state.EX.Wrt_reg_addr;
-                newState.MEM.rd_mem = 0;
-                newState.MEM.wrt_mem = 0;
-                newState.MEM.wrt_enable = 1;                
+                }             
             }  
-            /* 
             else {                                  // I-type
-                newState.MEMS.nop = 0;
-                newState.WBS.nop = 1;
+                newState.MEM.ALUresult = bitset<32> (state.EX.Read_data1.to_ulong() + state.EX.Imm.to_ulong() );
+                if (state.EX.rd_mem == 1) {         //lw
+                    newState.MEM.wrt_enable = 1;
+                    newState.MEM.rd_mem = 1;
+                }
+                else if (state.EX.wrt_mem == 1) {   //sw
+                    newState.MEM.Store_data = state.EX.Read_data2;
+                    newState.MEM.wrt_mem = 1;
+                }
+                else {                              //bnq
+                }
             }
-            */
 
         }               
         else {
@@ -359,50 +379,44 @@ int main()
             }
             else{
                 newState.EX.nop = 0;
-                opcode = bitset<6>(slice(0,6,state.ID.Instr.to_string()));  
-                if (opcode.to_ulong() == 0) {  // R-type
-                    newState.EX.Rs = bitset<5>(slice(6,11,state.ID.Instr.to_string()));
-                    newState.EX.Rt = bitset<5>(slice(11,16,state.ID.Instr.to_string()));
-                    newState.EX.Wrt_reg_addr = bitset<5>(slice(16,21,state.ID.Instr.to_string()));  //rd
-                    newState.EX.Read_data1 =  myRF.readRF(bitset<5>(slice(6,11,state.ID.Instr.to_string()))); //Rs
-                    newState.EX.Read_data2 =  myRF.readRF(bitset<5>(slice(11,16,state.ID.Instr.to_string()))); //Rd  
-                    newState.EX.is_I_type = 0;
-                    newState.EX.wrt_enable = 1;
-                    newState.EX.rd_mem = 0;
-                    newState.EX.wrt_mem = 0;
+                opcode = bitset<6>(slice(0,6,state.ID.Instr.to_string())); 
+                newState.EX.Rs = bitset<5>(slice(6,11,state.ID.Instr.to_string()));
+                newState.EX.Rt = bitset<5>(slice(11,16,state.ID.Instr.to_string()));
+                newState.EX.Read_data1 =  myRF.readRF(bitset<5>(slice(6,11,state.ID.Instr.to_string()))); //Rs
+                newState.EX.Read_data2 =  myRF.readRF(bitset<5>(slice(11,16,state.ID.Instr.to_string()))); //Rt
+                newState.EX.Wrt_reg_addr = bitset<5>(slice(16,21,state.ID.Instr.to_string()));  //rd   
+                newState.EX.Imm = bitset<16>(slice(16,32,state.ID.Instr.to_string()));          //Immediate
+                newState.EX.is_I_type = 0;
+                newState.EX.wrt_enable = 0;
+                newState.EX.rd_mem = 0;
+                newState.EX.wrt_mem = 0;
+                newState.EX.alu_op = 1;
 
+                if (opcode.to_ulong() == 0) {  // R-type                                    
+                    newState.EX.wrt_enable = 1;
                     funct = bitset<6>(slice(26,32,state.ID.Instr.to_string()));  
-                    if (funct.to_ulong() == 33) {   //addu                  
-                        newState.EX.alu_op = 1;                        
-                    }
-                    else if (funct.to_ulong() == 35) {  //subu
-                        newState.EX.alu_op = 0;
-                    }                    
+                    if (funct.to_ulong() == 35) {   //subs                 
+                        newState.EX.alu_op = 0;                        
+                    }                  
                 }
-                /*
                 else {      // I-type
-                    newState.EX.Rs = bitset<5>(slice(6,11,state.ID.Instr.to_string()));
-                    newState.EX.Rt = bitset<5>(slice(11,16,state.ID.Instr.to_string()));
-                    newState.EX.Wrt_reg_addr = 0 ; //rd
-                    newState.EX.Read_data1 = myRF.readRF(bitset<5>(slice(6,11,state.ID.Instr.to_string()))); //Rs
-                    newState.EX.Read_data2 = 0;   
-                    newState.EX.is_I_type = 1;
-                    newState.EX.wrt_enable = 0;                    
-                    newState.EX.Imm = bitset<16>(slice(16,32,state.ID.Instr.to_string()));
+                    newState.EX.is_I_type = 1;                                                       
                     if (opcode.to_ulong() == 35) {  //lw
+                        newState.EX.wrt_enable = 1; 
                         newState.EX.rd_mem = 1;
-                        newState.EX.wrt_mem = 0;
+                        newState.EX.Wrt_reg_addr = bitset<5>(slice(11,16,state.ID.Instr.to_string())); // Rt instead of Rd
                     }
                     else if (opcode.to_ulong() == 43) {     //sw
-                        newState.EX.rd_mem = 0;
                         newState.EX.wrt_mem = 1;
                     }
+                    /*
                     else if (opcode.to_ulong() == 5) {      //bne
                         newState.EX.rd_mem = 0;
                         newState.EX.wrt_mem = 0;
                     }
+                    */
                 }    
-                */          
+        
             }
 
         }
@@ -421,7 +435,6 @@ int main()
             newState.IF.nop = 1;
             newState.ID.nop = 1;
         }
-
 
              
         if (state.IF.nop && state.ID.nop && state.EX.nop && state.MEM.nop && state.WB.nop)
