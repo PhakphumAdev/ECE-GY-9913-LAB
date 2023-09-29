@@ -333,9 +333,9 @@ int main()
                 newState.MEM.Rs = state.EX.Rs;
                 newState.MEM.Rt = state.EX.Rt;
                 newState.MEM.Wrt_reg_addr = state.EX.Wrt_reg_addr;
-                newState.rd_mem = 0;
-                newState.wrt_mem = 0;
-                newState.wrt_enable = 1;                
+                newState.MEM.rd_mem = 0;
+                newState.MEM.wrt_mem = 0;
+                newState.MEM.wrt_enable = 1;                
             }  
             /* 
             else {                                  // I-type
