@@ -281,24 +281,21 @@ int main()
     bitset<6>funct;
     int cycle = 0;
     //Initialize structs
-    stateStruct state;
-    stateStruct newState;
+    stateStruct state={0}; //initialize everything inside to be 0
+    stateStruct newState={0};// same^
 
     //Initialize first state
     state.IF.PC = 0;
     state.IF.nop = 0;
-    state.ID.nop = 0;
-    state.EX.nop = 0;
+    state.ID.nop = 1;
+    state.EX.nop = 1;
     state.MEM.nop = 1;
     state.WB.nop = 1;
 
+    state.EX.alu_op = 1; // arthur told me to add this line
     // Clear garbage
-    state.EX = {0,0,0,0,0,0,0,0,0,0,0,0};
-    state.MEM = {0,0,0,0,0,0,0,0,1};
-    state.WB = {0,0,0,0,0,1};
 
 
-			
              
     while (1) {
 
