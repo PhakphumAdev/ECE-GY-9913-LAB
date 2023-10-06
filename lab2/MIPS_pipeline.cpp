@@ -292,10 +292,6 @@ int main()
     state.MEM.nop = 1;
     state.WB.nop = 1;
 
-    state.EX.alu_op = 1; // arthur told me to add this line
-    // Clear garbage
-
-
              
     while (1) {
 
@@ -313,7 +309,7 @@ int main()
         if (state.MEM.nop != 1) {
             newState.WB.nop = 0;
             newState.WB.Wrt_data = state.MEM.ALUresult;
-            newState.WB.Rs = state.MEM.Rs;
+            newState.WB.Rs = state.MEM.Rs;  
             newState.WB.Rt = state.MEM.Rt;
             newState.WB.Wrt_reg_addr = state.MEM.Wrt_reg_addr;
             newState.WB.wrt_enable = state.MEM.wrt_enable;
@@ -341,6 +337,14 @@ int main()
             newState.MEM.wrt_enable = 0;  
             newState.MEM.rd_mem = 0;
             newState.MEM.wrt_mem = 0;
+
+            //check RAW hazard and forward values
+            if (state.EX.Rs == newState.WB.Wrt_reg_addr) {
+                state.EX.Read_data1 = newState.WB.Wrt_data;
+            }
+            if (state.EX.Rt == newState.WB.Wrt_reg_addr) {
+                state.EX.Read_data2 = newState.WB.Wrt_data;
+            }
 
 
             if (state.EX.is_I_type == 0) {    // R-type
