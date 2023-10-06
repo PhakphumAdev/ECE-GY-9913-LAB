@@ -292,6 +292,9 @@ int main()
     state.MEM.nop = 1;
     state.WB.nop = 1;
 
+    //control value
+    bool control_flow_hazard = false;
+
              
     while (1) {
 
@@ -416,14 +419,20 @@ int main()
                         newState.EX.wrt_mem = 1;
                     }
                     else if (opcode.to_ulong() == 5) {      //bne
+                        // if branch not equal
                         if (myRF.readRF(bitset<5>(slice(6,11,state.ID.Instr.to_string()))) != myRF.readRF(bitset<5>(slice(11,16,state.ID.Instr.to_string())))) {
                             bitset<32>BranchAddr = signExtend(bitset<16>(slice(16,32,state.ID.Instr.to_string())));
                             string temp = BranchAddr.to_string();
                             temp[30] = '0';
                             temp[31] = '0';
                             BranchAddr = bitset<32>(temp);
-                            newState.IF.PC = bitset<32>(state.IF.PC.to_ulong() + 4 + BranchAddr.to_ulong());                              
+                            newState.IF.PC = bitset<32>(state.IF.PC.to_ulong() + 4 + BranchAddr.to_ulong());  //jump
+                            //After jump, cancel the upcoming instruction (PC+4) that is being read
+                            control_flow_hazard = true;
                         }
+                        else {   //if branch equal send one bubble to the pipeline (skip this instruction in the pipeline but run the next one normally)
+                            newState.EX.nop = 1;
+                        }                        
                     }
                 }    
         
@@ -440,6 +449,11 @@ int main()
             newState.ID.Instr = myInsMem.readInstr(state.IF.PC);
             newState.ID.nop = 0;
             newState.IF.PC =  state.IF.PC.to_ulong() + 4;
+            //check if there's a control flow hazard, cancel the fetching instruction by sending bubble
+            if (control_flow_hazard) {
+                newState.ID.nop = 1;
+                control_flow_hazard = false;
+            }
         }
         else {
             newState.IF.nop = 1;
