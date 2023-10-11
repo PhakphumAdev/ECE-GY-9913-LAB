@@ -348,6 +348,12 @@ int main()
             if (state.EX.Rt == newState.WB.Wrt_reg_addr) {
                 state.EX.Read_data2 = newState.WB.Wrt_data;
             }
+            if(state.EX.Rs == newState.MEM.Wrt_reg_addr){
+                state.EX.Read_data1 = newState.MEM.ALUresult;
+            }
+            if(state.EX.Rt == newState.MEM.Wrt_reg_addr){
+                state.EX.Read_data2 = newState.MEM.ALUresult;
+            }
 
 
             if (state.EX.is_I_type == 0) {    // R-type
@@ -378,7 +384,6 @@ int main()
             newState.EX.nop = 1;
             newState.MEM.nop = 1;
         }
-
         /* --------------------- ID stage --------------------- */
         if (state.IF.nop != 1) {
             if (state.ID.Instr.to_string() == "11111111111111111111111111111111") { //halt
@@ -404,8 +409,8 @@ int main()
                 if (opcode.to_ulong() == 0) {  // R-type                                    
                     newState.EX.wrt_enable = 1;
                     funct = bitset<6>(slice(26,32,state.ID.Instr.to_string()));  
-                    if (funct.to_ulong() == 35) {   //subs                 
-                        newState.EX.alu_op = 0;                        
+                    if (funct.to_ulong() == 35) {   //subs       <<-- where r addu  handle by aluop default value above-^         
+                        newState.EX.alu_op = 0;  
                     }                  
                 }
                 else {      // I-type
@@ -435,7 +440,15 @@ int main()
                         }                        
                     }
                 }    
-        
+
+                if(state.EX.nop==0 && state.EX.rd_mem==1){//stall
+                    if((state.EX.Wrt_reg_addr == newState.EX.Rs) ||(state.EX.Wrt_reg_addr == newState.EX.Rt && newState.EX.is_I_type==0)){
+                        newState.EX.nop = 1;
+                        state = newState;
+                        cycle++;
+                        continue;
+                    }
+                }
             }
 
         }
@@ -443,7 +456,7 @@ int main()
             newState.ID.nop = 1;
             newState.EX.nop = 1;
         }
-        
+
         /* --------------------- IF stage --------------------- */
         if (state.IF.nop != 1) {
             newState.ID.Instr = myInsMem.readInstr(state.IF.PC);
@@ -460,7 +473,7 @@ int main()
             newState.ID.nop = 1;
         }
 
-             
+        // cout << newState.IF.PC.to_ulong() << " " << cycle << "\n";
         if (state.IF.nop && state.ID.nop && state.EX.nop && state.MEM.nop && state.WB.nop)
             break;
         
