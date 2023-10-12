@@ -344,49 +344,29 @@ int main()
             newState.MEM.wrt_mem = 0;
 
             //check RAW hazard and forward values
-            // if (state.EX.Rs == newState.WB.Wrt_reg_addr) {
-            //     state.EX.Read_data1 = newState.WB.Wrt_data;
-            // }
-            // if (state.EX.Rt == newState.WB.Wrt_reg_addr) {
-            //     state.EX.Read_data2 = newState.WB.Wrt_data;
-            // }
-            // if(state.EX.Rs == newState.MEM.Wrt_reg_addr){
-            //     state.EX.Read_data1 = newState.MEM.ALUresult;
-            // }
-            // if(state.EX.Rt == newState.MEM.Wrt_reg_addr){
-            //     state.EX.Read_data2 = newState.MEM.ALUresult;
-            // }
+            if (state.WB.nop == 0 && state.WB.wrt_enable == 1) {
+                if (state.WB.Wrt_reg_addr == state.EX.Rs) {
+                    state.EX.Read_data1 = state.WB.Wrt_data;
+                }
 
-            if ((0 == state.WB.nop) && (1 == state.WB.wrt_enable) && (state.WB.Wrt_reg_addr == state.EX.Rs))
-            {
-                state.EX.Read_data1 = state.WB.Wrt_data;
-                cout<<"MEM-EX Rs Forwarding"<<endl;
+                if (state.WB.Wrt_reg_addr == state.EX.Rt) {
+                    if (!state.EX.is_I_type && state.EX.wrt_enable == 1) {
+                        state.EX.Read_data2 = state.WB.Wrt_data;
+                    }
+                    }
             }
-            
-            if ((0 == state.WB.nop) && (1 == state.WB.wrt_enable) && (state.WB.Wrt_reg_addr == state.EX.Rt))
-            {
-                if (((0 == state.EX.is_I_type) && (1 == state.EX.wrt_enable)) || (1 == state.EX.wrt_mem))   //addu, subu, sw
-                {
-                    state.EX.Read_data2 = state.WB.Wrt_data;
-                    cout<<"MEM-EX Rt Forwarding"<<endl;                
+
+            if (state.MEM.nop == 0 && state.MEM.rd_mem == 0 && state.MEM.wrt_mem == 0 && state.MEM.wrt_enable == 1) {
+                if (state.MEM.Wrt_reg_addr == state.EX.Rs) {
+                    state.EX.Read_data1 = state.MEM.ALUresult;
+                }
+
+                if (state.MEM.Wrt_reg_addr == state.EX.Rt) {
+                    if (!state.EX.is_I_type && state.EX.wrt_enable == 1) {
+                        state.EX.Read_data2 = state.MEM.ALUresult;
+                    }
                 }
             }
-            
-            if ((0 == state.MEM.nop) && (0 == state.MEM.rd_mem) && (0 == state.MEM.wrt_mem) && (1 == state.MEM.wrt_enable) && (state.MEM.Wrt_reg_addr == state.EX.Rs))
-            {               
-                state.EX.Read_data1 = state.MEM.ALUresult;
-                cout<<"EX-EX Rs Forwarding"<<endl;
-            }
-            
-            if ((0 == state.MEM.nop) && (0 == state.MEM.rd_mem) && (0 == state.MEM.wrt_mem) && (1 == state.MEM.wrt_enable) && (state.MEM.Wrt_reg_addr == state.EX.Rt))
-            {
-                if ((0 == state.EX.is_I_type) && (1 == state.EX.wrt_enable))   // || (1 == state.EX.wrt_mem))   //addu, subu, for sw, we choose MEM-MEM but EX-EX
-                {
-                    state.EX.Read_data2 = state.MEM.ALUresult;
-                    cout<<"EX-EX Rt Forwarding"<<endl; 
-                }
-            }            
-            
 
 
             if (state.EX.is_I_type == 0) {    // R-type
@@ -475,7 +455,7 @@ int main()
                 }    
 
                 //check for stall lw -> add or lw -> sub
-                if (state.EX.rd_mem == 1 && newState.EX.is_I_type == 0) {
+                if (state.EX.rd_mem == 1 && newState.EX.is_I_type == 0 && (state.EX.Wrt_reg_addr == newState.EX.Rs||state.EX.Wrt_reg_addr == newState.EX.Rt)) {
                     newState.EX.nop = 1;
                     newState.IF = state.IF;
                     newState.ID.nop = 1;
@@ -483,20 +463,6 @@ int main()
                     cycle++;
                     continue;
                 }
-
-
-                /*
-                if(state.EX.nop==0 && state.EX.rd_mem==1){//stall
-                    if((state.EX.Wrt_reg_addr == newState.EX.Rs) ||(state.EX.Wrt_reg_addr == newState.EX.Rt && newState.EX.is_I_type==0)){
-                        newState.EX.nop = 1;
-                        newState.
-                        control_stall = true;
-                        state = newState;
-                        cycle++;
-                        continue;
-                    }
-                }
-                */
             }
 
         }
