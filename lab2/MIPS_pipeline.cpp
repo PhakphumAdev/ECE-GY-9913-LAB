@@ -323,13 +323,8 @@ int main()
             }
             if (state.MEM.wrt_mem == 1) {       //sw
                 myDataMem.writeDataMem(state.MEM.ALUresult, state.MEM.Store_data);
-            }
+            }      
 
-            //cancel stall
-            if (control_stall) {
-                    control_stall = false;
-                    state.EX.nop = 0;
-                }
         }       
         else {
             newState.MEM.nop = 1;
@@ -448,15 +443,29 @@ int main()
                     }
                 }    
 
+                //check for stall lw -> add or lw -> sub
+                if (state.EX.rd_mem == 1 && newState.EX.is_I_type == 0) {
+                    newState.EX.nop = 1;
+                    newState.IF = state.IF;
+                    newState.ID = {0};
+                    state = newState;
+                    cycle++;
+                    continue;
+                }
+
+
+                /*
                 if(state.EX.nop==0 && state.EX.rd_mem==1){//stall
                     if((state.EX.Wrt_reg_addr == newState.EX.Rs) ||(state.EX.Wrt_reg_addr == newState.EX.Rt && newState.EX.is_I_type==0)){
                         newState.EX.nop = 1;
-                        control_staw = true;
+                        newState.
+                        control_stall = true;
                         state = newState;
                         cycle++;
                         continue;
                     }
                 }
+                */
             }
 
         }
