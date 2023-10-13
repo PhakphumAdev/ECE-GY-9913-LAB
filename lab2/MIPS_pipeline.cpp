@@ -288,7 +288,7 @@ int main()
     INSMem myInsMem;
     DataMem myDataMem;
     bitset<6> opcode;  
-    bitset<6>funct;
+    bitset<6> funct;
     int cycle = 0;
     //Initialize structs
     stateStruct state={0}; //initialize everything inside to be 0
@@ -492,14 +492,18 @@ int main()
 
         /* --------------------- IF stage --------------------- */
         if (state.IF.nop != 1) {
-            newState.ID.Instr = myInsMem.readInstr(state.IF.PC);
-            newState.ID.nop = 0;
-            newState.IF.PC =  state.IF.PC.to_ulong() + 4;
-            //check if there's a control flow hazard, cancel the fetching instruction by sending bubble
+            //check if there's a control flow hazard, cancel the current instruction 
             if (control_flow_hazard) {
                 newState.ID.nop = 1;
                 control_flow_hazard = false;
             }
+            else {
+                newState.ID.Instr = myInsMem.readInstr(state.IF.PC);
+                newState.ID.nop = 0;
+                newState.IF.PC =  state.IF.PC.to_ulong() + 4;
+            }
+            
+            
         }
         else {
             newState.IF.nop = 1;
