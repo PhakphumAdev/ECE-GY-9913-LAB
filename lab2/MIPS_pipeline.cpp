@@ -332,19 +332,12 @@ int main()
                 newState.WB.Wrt_data = myDataMem.readDataMem(state.MEM.ALUresult);
             }
             else if (state.MEM.wrt_mem == 1) {       //sw
-                // if (!state.WB.nop && state.WB.wrt_enable && state.WB.Wrt_reg_addr == state.MEM.Rt) {
-                //     state.MEM.Store_data = state.WB.Wrt_data;
-                // }
                 myDataMem.writeDataMem(state.MEM.ALUresult, state.MEM.Store_data);
             }   
-            // else if (state.MEM.wrt_enable == 1) {
-            //     newState.WB.Wrt_data = state.MEM.ALUresult;
-            // }
-
         }       
         else {
             newState.MEM.nop = 1;
-            newState.WB.nop = 1;
+            newState.WB.nop = 1;           
         }
 
         /* --------------------- EX stage --------------------- */
@@ -364,19 +357,16 @@ int main()
                 if (state.WB.Wrt_reg_addr == state.EX.Rs) {
                     state.EX.Read_data1 = state.WB.Wrt_data;
                 }
-
                 if (state.WB.Wrt_reg_addr == state.EX.Rt) {
                     if (!state.EX.is_I_type && state.EX.wrt_enable == 1) {
                         state.EX.Read_data2 = state.WB.Wrt_data;
                     }
-                    }
+                }
             }
-
             if (state.MEM.nop == 0 && state.MEM.rd_mem == 0 && state.MEM.wrt_mem == 0 && state.MEM.wrt_enable == 1) {
                 if (state.MEM.Wrt_reg_addr == state.EX.Rs) {
                     state.EX.Read_data1 = state.MEM.ALUresult;
                 }
-
                 if (state.MEM.Wrt_reg_addr == state.EX.Rt) {
                     if (!state.EX.is_I_type && state.EX.wrt_enable == 1) {
                         state.EX.Read_data2 = state.MEM.ALUresult;
@@ -384,7 +374,7 @@ int main()
                 }
             }
 
-
+            //Execution 
             if (state.EX.is_I_type == 0) {    // R-type
                 newState.MEM.wrt_enable = 1;
                 if (state.EX.alu_op == 1) {
@@ -405,14 +395,16 @@ int main()
                     newState.MEM.wrt_mem = 1;
                 }
                 else {                              //bnq
+                    // do nothing
                 }
             }
-
-        }               
+        }                      
         else {
             newState.EX.nop = 1;
             newState.MEM.nop = 1;
         }
+
+
         /* --------------------- ID stage --------------------- */
         if (state.ID.nop != 1) {
             if (state.ID.Instr.to_string() == "11111111111111111111111111111111") { //halt
@@ -455,15 +447,16 @@ int main()
                     else if (opcode.to_ulong() == 5) {      //bne
                         // if branch not equal
                         if (myRF.readRF(bitset<5>(slice(6,11,state.ID.Instr.to_string()))) != myRF.readRF(bitset<5>(slice(11,16,state.ID.Instr.to_string())))) {
-                            bitset<32>BranchAddr = BranchAddrCompute(bitset<16>(slice(16,32,state.ID.Instr.to_string())));
+                            bitset<32>BranchAddr = BranchAddrCompute(bitset<16>(slice(16,32,state.ID.Instr.to_string())));                            
                             newState.IF.PC = bitset<32>(state.IF.PC.to_ulong() + BranchAddr.to_ulong());  //jump
+                            /*---------------------  For testing -------------------------/
                             cout << "check sign extend "<< BranchAddr.to_ulong()<<'\n';
                             cout << "check sign extend calling function " << signExtend(bitset<16>(slice(16,32,state.ID.Instr.to_string()))).to_ulong() << '\n';
                             cout << "check state PC " << state.IF.PC.to_ulong()<<'\n';
                             cout << "check imm " << bitset<16>(slice(16,32,state.ID.Instr.to_string())).to_ulong() << '\n';
                             cout << "branch taken: new pc:" << newState.IF.PC.to_ulong() << '\n'; 
-                            //After jump, cancel the upcoming instruction (PC+4) that is being read
-
+                            */
+                            //After jump, skip the upcoming instruction (PC+4) that is being read
                             newState.EX.nop = 0;
                             newState.ID.nop = 1;
                             newState.IF.nop = 0;
@@ -473,18 +466,17 @@ int main()
                         }
                         else {   //if branch equal send one bubble to the pipeline (skip this instruction in the pipeline but run the next one normally)
                             newState.EX.nop = 1;
-                            cout << "branch not taken: new pc:" << newState.IF.PC.to_ulong() << '\n'; 
+                            //cout << "branch not taken: new pc:" << newState.IF.PC.to_ulong() << '\n'; 
                         }                        
                     }
                 }    
-
                 // check for stall lw -> add or lw -> sub
                 if (state.EX.rd_mem == 1  && !state.EX.nop  && (state.EX.Wrt_reg_addr == newState.EX.Rs||(state.EX.Wrt_reg_addr == newState.EX.Rt && !newState.EX.is_I_type))) {
                     newState.EX.nop = 1;
                     newState.IF = state.IF;
                     newState.ID = state.ID;
                     state = newState;
-                    cout << "stall\n";
+                    //cout << "stall\n";
                     cycle++;
                     continue;
                 }
@@ -499,11 +491,9 @@ int main()
 
         /* --------------------- IF stage --------------------- */
         if (state.IF.nop != 1) {
-            //check if there's a control flow hazard, cancel the skip the current instruction and wait to run new PC
             newState.ID.Instr = myInsMem.readInstr(state.IF.PC);
             newState.ID.nop = 0;
-            newState.IF.PC =  state.IF.PC.to_ulong() + 4;                          
-            
+            newState.IF.PC =  state.IF.PC.to_ulong() + 4;                         
         }
         else {
             newState.IF.nop = 1;
