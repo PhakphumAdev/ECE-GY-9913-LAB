@@ -80,7 +80,17 @@ bitset<32>signExtend(bitset<16>bit){
   bitset<32>ret (res);
   return ret;
 }
-
+bitset<32>BranchAddrCompute(bitset<16>bit){
+    string extended = bit.to_string();
+    string temp = "";
+    char sign_bit = extended[0];
+    while(temp.length()!=14){
+        temp+=sign_bit;
+    }
+    string res = temp+extended+"00";
+    bitset<32> ret (res);
+    return ret;
+}
 class RF
 {
     public: 
@@ -445,17 +455,19 @@ int main()
                     else if (opcode.to_ulong() == 5) {      //bne
                         // if branch not equal
                         if (myRF.readRF(bitset<5>(slice(6,11,state.ID.Instr.to_string()))) != myRF.readRF(bitset<5>(slice(11,16,state.ID.Instr.to_string())))) {
-                            bitset<32>BranchAddr = signExtend(bitset<16>(slice(16,32,state.ID.Instr.to_string())));
-                            string temp = BranchAddr.to_string();
-                            temp[30] = '0';
-                            temp[31] = '0';
-                            BranchAddr = bitset<32>(temp);
-                            newState.IF.PC = bitset<32>(state.IF.PC.to_ulong() + 4 + BranchAddr.to_ulong());  //jump
+                            bitset<32>BranchAddr = BranchAddrCompute(bitset<16>(slice(16,32,state.ID.Instr.to_string())));
+                            newState.IF.PC = bitset<32>(state.IF.PC.to_ulong() + BranchAddr.to_ulong());  //jump
+                            // cout << "check sign extend "<< BranchAddr.to_ulong()<<'\n';
+                            // cout << "check sign extend calling function " << signExtend(bitset<16>(slice(16,32,state.ID.Instr.to_string()))).to_ulong() << '\n';
+                            // cout << "check state PC " << state.IF.PC.to_ulong()<<'\n';
+                            // cout << "check imm " << bitset<16>(slice(16,32,state.ID.Instr.to_string())).to_ulong() << '\n';
+                            // cout << "branch taken: new pc:" << newState.IF.PC.to_ulong() << '\n'; 
                             //After jump, cancel the upcoming instruction (PC+4) that is being read
                             control_flow_hazard = true;
                         }
                         else {   //if branch equal send one bubble to the pipeline (skip this instruction in the pipeline but run the next one normally)
                             newState.EX.nop = 1;
+                            // cout << "branch not taken: new pc:" << newState.IF.PC.to_ulong() << '\n'; 
                         }                        
                     }
                 }    
