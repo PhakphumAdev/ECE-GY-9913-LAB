@@ -321,9 +321,15 @@ int main()
             if (state.MEM.rd_mem == 1) {        //lw
                 newState.WB.Wrt_data = myDataMem.readDataMem(state.MEM.ALUresult);
             }
-            if (state.MEM.wrt_mem == 1) {       //sw
+            else if (state.MEM.wrt_mem == 1) {       //sw
+                if (!state.WB.nop && state.WB.wrt_enable && state.WB.Wrt_reg_addr == state.MEM.Rt) {
+                    state.MEM.Store_data = state.WB.Wrt_data;
+                }
                 myDataMem.writeDataMem(state.MEM.ALUresult, state.MEM.Store_data);
-            }      
+            }   
+            else if (state.MEM.wrt_enable == 1) {
+                newState.WB.Wrt_data = state.MEM.ALUresult;
+            }
 
         }       
         else {
@@ -455,14 +461,28 @@ int main()
                 }    
 
                 //check for stall lw -> add or lw -> sub
-                if (state.EX.rd_mem == 1 && newState.EX.is_I_type == 0 && (state.EX.Wrt_reg_addr == newState.EX.Rs||state.EX.Wrt_reg_addr == newState.EX.Rt)) {
-                    newState.EX.nop = 1;
-                    newState.IF = state.IF;
-                    newState.ID.nop = 1;
-                    state = newState;
-                    cycle++;
-                    continue;
-                }
+                // if (state.EX.rd_mem == 1  && !state.EX.nop  && (state.EX.Wrt_reg_addr == newState.EX.Rs||(state.EX.Wrt_reg_addr == newState.EX.Rt && !newState.EX.is_I_type))) {
+                //     newState.EX.nop = 1;
+                //     newState.IF = state.IF;
+                //     newState.ID.nop = 1;
+                //     state = newState;
+                //     cycle++;
+                //     continue;
+                // }
+                if (!state.EX.nop && state.EX.rd_mem) {
+    if ((state.EX.Wrt_reg_addr == newState.EX.Rs) || (state.EX.Wrt_reg_addr == newState.EX.Rt && !newState.EX.is_I_type)) {
+        newState.EX.nop = 1;
+        newState.ID = state.ID;
+        newState.IF = state.IF;
+
+        printState(newState, cycle);
+        state = newState;
+        cycle++;
+        cout << "Stall" << endl;
+        continue;
+    }
+}
+
             }
 
         }
