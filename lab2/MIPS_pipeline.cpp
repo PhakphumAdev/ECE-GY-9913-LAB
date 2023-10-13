@@ -492,16 +492,19 @@ int main()
 
         /* --------------------- IF stage --------------------- */
         if (state.IF.nop != 1) {
-            //check if there's a control flow hazard, cancel the current instruction 
+            //check if there's a control flow hazard, cancel the skip the current instruction and wait to run new PC
+            /*
             if (control_flow_hazard) {
                 newState.ID.nop = 1;
                 control_flow_hazard = false;
             }
             else {
-                newState.ID.Instr = myInsMem.readInstr(state.IF.PC);
-                newState.ID.nop = 0;
-                newState.IF.PC =  state.IF.PC.to_ulong() + 4;
+                
             }
+            */
+            newState.ID.Instr = myInsMem.readInstr(state.IF.PC);
+            newState.ID.nop = 0;
+            newState.IF.PC =  state.IF.PC.to_ulong() + 4;
             
             
         }
