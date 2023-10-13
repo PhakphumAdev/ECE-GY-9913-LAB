@@ -463,7 +463,8 @@ int main()
                             // cout << "check imm " << bitset<16>(slice(16,32,state.ID.Instr.to_string())).to_ulong() << '\n';
                             // cout << "branch taken: new pc:" << newState.IF.PC.to_ulong() << '\n'; 
                             //After jump, cancel the upcoming instruction (PC+4) that is being read
-                            control_flow_hazard = true;
+                            newState.EX.nop = 1;
+                            state = newState;
                             continue;
                         }
                         else {   //if branch equal send one bubble to the pipeline (skip this instruction in the pipeline but run the next one normally)
@@ -496,7 +497,7 @@ int main()
             //check if there's a control flow hazard, cancel the skip the current instruction and wait to run new PC
             newState.ID.Instr = myInsMem.readInstr(state.IF.PC);
             newState.ID.nop = 0;
-            newState.IF.PC =  state.IF.PC.to_ulong() + 4;                           
+            newState.IF.PC =  state.IF.PC.to_ulong() + 4;                          
             
         }
         else {
