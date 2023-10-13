@@ -464,7 +464,7 @@ int main()
                             // cout << "branch taken: new pc:" << newState.IF.PC.to_ulong() << '\n'; 
                             //After jump, cancel the upcoming instruction (PC+4) that is being read
                             control_flow_hazard = true;
-                            newState.EX.nop = 1;
+                            continue;
                         }
                         else {   //if branch equal send one bubble to the pipeline (skip this instruction in the pipeline but run the next one normally)
                             newState.EX.nop = 1;
@@ -494,15 +494,9 @@ int main()
         /* --------------------- IF stage --------------------- */
         if (state.IF.nop != 1) {
             //check if there's a control flow hazard, cancel the skip the current instruction and wait to run new PC
-            if (control_flow_hazard) {
-                newState.ID.nop = 1;
-                control_flow_hazard = false;
-            }
-            else {
-                newState.ID.Instr = myInsMem.readInstr(state.IF.PC);
-                newState.ID.nop = 0;
-                newState.IF.PC =  state.IF.PC.to_ulong() + 4;                
-            }                   
+            newState.ID.Instr = myInsMem.readInstr(state.IF.PC);
+            newState.ID.nop = 0;
+            newState.IF.PC =  state.IF.PC.to_ulong() + 4;                           
             
         }
         else {
