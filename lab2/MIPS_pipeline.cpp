@@ -332,7 +332,10 @@ int main()
                 newState.WB.Wrt_data = myDataMem.readDataMem(state.MEM.ALUresult);
             }
             else if (state.MEM.wrt_mem == 1) {       //sw
-                myDataMem.writeDataMem(state.MEM.ALUresult, state.MEM.Store_data);
+                myDataMem.writeDataMem(state.MEM.ALUresult, state.MEM.Store_data);  
+                if(!state.WB.nop && state.WB.wrt_enable && state.WB.Wrt_reg_addr == state.MEM.Rt){
+                    state.MEM.Store_data = state.WB.Wrt_data;
+                }
             }   
         }       
         else {
