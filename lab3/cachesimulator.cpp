@@ -53,14 +53,11 @@ struct cacheBlock
     bool dirty = false;
     bool valid = false;
 };
-
-
 struct set
 {
     vector<cacheBlock>  myblock;
     int counter = 0;
 };
-
 struct cache 
 {
     vector<set> myset;
@@ -68,13 +65,10 @@ struct cache
     int num_block;
 };
 
-// You can design your own data structure for L1 and L2 cache; just an example here
 class CacheSystem
 {
-    // some cache configuration parameters.
-    // cache L1 or L2
     cache L1, L2;
-    int set_index;
+    int set_index;  //used to iterate through each set
 
 public:
     CacheSystem(int block_size1, int num_way1, int cache_size1, int block_size2, int num_way2, int cache_size2) {
@@ -86,7 +80,7 @@ public:
             L1.myset[i].myblock.resize(L1.num_block);
         }
 
-        // initialize L1
+        // initialize L2
         L2.num_set = (cache_size1 * 1024) / block_size2;
         L2.num_block = num_way2;
         L2.myset.resize(L2.num_set);
@@ -126,19 +120,14 @@ public:
 
         return {WM or WH, WRITEMEM or NOWRITEMEM}
         */
-        set_index = addr.to_ulong() % L2.num_set;   
-        retMem ret;     
+        set_index = addr.to_ulong() % L2.num_set;      
         for (int i=0; i<L2.num_block; i++) {
             if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {
-                L2.myset[set_index].myblock[i].dirty = true;
-                ret.accessState = WH;
-                ret.memState = NOWRITEMEM;   
-                return ret;      
+                L2.myset[set_index].myblock[i].dirty = true; 
+                return WH;      
             }
         }
-        ret.accessState = WM;
-        ret.memState = WRITEMEM;
-        return ret;
+        return WM;
     }
 
     int readL1(bitset<32> addr){
@@ -157,8 +146,6 @@ public:
             }
         }
         return RM;
-
-
     }
 
     retMem readL2(bitset<32> addr){
@@ -180,25 +167,27 @@ public:
         set_index = addr.to_ulong() % L2.num_set; 
         for (int i=0; i<L2.num_block; i++) {
             if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {     
-                ret.accessState = RH;
-                //move block from L2 to L1
-                L2.myset[set_index].myblock[i].valid = false;
-                ret.memState = addL1(addr);
-
+                ret.accessState = RH;              
+                //move the block from L2 to L1  
+                L2.myset[set_index].myblock[i].valid = false;   
+                ret.memState = addL1(addr, L2.myset[set_index].myblock[i].dirty);
+                L2.myset[set_index].myblock[i].dirty = false;
+                //return
                 return ret;  
             }
         }
         //read miss -> fectch from memmory to L1
-        ret.memState = addL1(addr);
+        ret.memState = addL1(addr, false);
         ret.accessState = RM;
         return ret;
     }
 
-    int addL1(bitset<32> addr) {
+    int addL1(bitset<32> addr, bool dirt) {
         set_index = addr.to_ulong() % L1.num_set; 
         for (int i=0; i<L1.num_block; i++) {
             if(!L1.myset[set_index].myblock[i].valid) { //if there's an empty spot
                 L1.myset[set_index].myblock[i].valid = true;
+                L1.myset[set_index].myblock[i].dirty = dirt;
                 L1.myset[set_index].myblock[i].tag = addr;
                 return NOWRITEMEM;
             }
@@ -206,30 +195,34 @@ public:
         //if there's no empty spot -> evict
         //push block to L2
         int check_WB;
-        check_WB = addL2(L1.myset[set_index].myblock[L1.myset[set_index].counter].tag);
+        check_WB = addL2(L1.myset[set_index].myblock[L1.myset[set_index].counter].tag, 
+                        L1.myset[set_index].myblock[L1.myset[set_index].counter].dirty);
+
+        //replace block in L1 to new addr
+        L1.myset[set_index].myblock[L1.myset[set_index].counter].tag = addr;
+        L1.myset[set_index].myblock[L1.myset[set_index].counter].dirty = dirt;
+
+        //increment counter
         L1.myset[set_index].counter++;
         if (L1.myset[set_index].counter == L1.num_block) {
             L1.myset[set_index].counter = 0;
         }
 
-        //replace block in L1 to new addr
-        L1.myset[set_index].myblock[L1.myset[set_index].counter].tag = addr;
-        L1.myset[set_index].myblock[L1.myset[set_index].counter].dirty = false;
-
         return check_WB;
     }
 
-    int addL2(bitset<32> addr) {
+    int addL2(bitset<32> addr, bool dirt) {
         set_index = addr.to_ulong() % L2.num_set; 
         for (int i=0; i<L2.num_block; i++) {
             if(!L2.myset[set_index].myblock[i].valid) { //if there's an empty spot
                 L2.myset[set_index].myblock[i].valid = true;
                 L2.myset[set_index].myblock[i].tag = addr;
+                L2.myset[set_index].myblock[i].dirty = dirt;
                 return NOWRITEMEM;
             }
         }
         //if there's no empty spot -> evict
-        //replace block in L1 to new addr
+        //replace block in L2 to new addr
         int check_WB;
         if (L2.myset[set_index].myblock[L2.myset.counter].dirty) {
             check_WB = WRITEMEM;
@@ -238,8 +231,9 @@ public:
             check_WB = NOWRITEMEM;
         }
         L2.myset[set_index].myblock[L2.myset.counter].tag = addr;
-        L2.myset[set_index].myblock[L2.myset.counter].dirty = false;
+        L2.myset[set_index].myblock[L2.myset.counter].dirty = dirt;
 
+        //increment counter
         L2.myset[set_index].counter++;
         if (L2.myset[set_index].counter == L2.num_block) {
             L2.myset[set_index].counter = 0;
@@ -319,57 +313,44 @@ int main(int argc, char *argv[])
             saddr >> std::hex >> addr;
             accessaddr = bitset<32>(addr);
 
-            // access the L1 and L2 Cache according to the trace;
-            if (accesstype.compare("R") == 0)  // a Read request
+            /* Read and Write Functions*/
+            // a Read request
+            if (accesstype.compare("R") == 0)  
             {
-                // Implement by you:
-                //   read access to the L1 Cache,
-                //   and then L2 (if required),
-                //   update the access state variable;
-                //   return: L1AcceState L2AcceState MemAcceState
-                
-                // For example:
-                // L1AcceState = cache.readL1(addr); // read L1
-                // if(L1AcceState == RM){
-                //     L2AcceState, MemAcceState = cache.readL2(addr); // if L1 read miss, read L2
-                // }
-                // else{ ... }
+                //Try read L1
                 L1AcceState = myCacheSystem.readL1(accessaddr);
-                if(L1AcceState == RM){
+                if(L1AcceState == RH){      //if read L1 success
+                    L2AcceState = NA;
+                    MemAcceState = NOWRITEMEM;
+                }
+                else if(L1AcceState == RM){ //if read L1 fail, try read L2
                     retMem ret = myCacheSystem.readL2(accessaddr);
                     L2AcceState = ret.accessState;
                     MemAcceState = ret.memState;
                     // L2AcceState, MemAcceState = myCacheSystem.readL2(accessaddr); // if L1 read miss, read L2
                 }
-                else{   //if L1 read hit,
-                    L2AcceState = NA;
-                    MemAcceState = NOWRITEMEM;
-                }
 
             }
-            else{ // a Write request
-                // Implement by you:
-                //   write access to the L1 Cache, or L2 / main MEM,
-                //   update the access state variable;
-                //   return: L1AcceState L2AcceState
-
-                // For example:
-                // L1AcceState = cache.writeL1(addr);
-                // if (L1AcceState == WM){
-                //     L2AcceState, MemAcceState = cache.writeL2(addr);
-                // }
-                // else if(){...}
+            // a Write request
+            else{ 
+                //Try write L1
                 L1AcceState = myCacheSystem.writeL1(accessaddr);
-                if (L1AcceState == WM){
-                    myCacheSystem.writeL2(accessaddr);
-                    retMem ret = myCacheSystem.writeL2(accessaddr);
-                    L2AcceState = ret.accessState;
-                    MemAcceState = ret.memState;
-                }
-                else if (L1AcceState == WH){ //if L1 write hit
+                if (L1AcceState == WH) {    //if write L1 success
                     L2AcceState = NA;
                     MemAcceState = NOWRITEMEM;
                 }
+                else if (L1AcceState == WM){    //if write L1 fail, try write L2
+                    L2AcceState = myCacheSystem.writeL2(accessaddr);
+                }
+
+                //if both writeL1 and writeL2 fail -> write in MEM
+                if (L1AcceState == WM && L2AcceState == WM) {   
+                    MemAcceState = WRITEMEM;
+                }
+                else {
+                    MemAcceState = NOWRITEMEM;
+                }
+
             }
 /*********************************** ↑↑↑ Todo: Implement by you ↑↑↑ ******************************************/
 
