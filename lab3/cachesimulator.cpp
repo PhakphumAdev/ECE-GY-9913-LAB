@@ -112,7 +112,6 @@ public:
                 return WH;     
             }
         }
-        // writeL2(addr);
         return WM;
 
     }
@@ -134,14 +133,12 @@ public:
                 L2.myset[set_index].myblock[i].dirty = true;
                 ret.accessState = WH;
                 ret.memState = NOWRITEMEM;   
-                return ret;   
-                // return {WH, NOWRITEMEM};     
+                return ret;      
             }
         }
         ret.accessState = WM;
         ret.memState = WRITEMEM;
         return ret;
-        // return {WM, WRITEMEM};
     }
 
     int readL1(bitset<32> addr){
@@ -179,26 +176,65 @@ public:
 
         return {RM or RH, WRITEMEM or NOWRITEMEM}
         */
-       retMem ret;
+        retMem ret;
         set_index = addr.to_ulong() % L2.num_set; 
         for (int i=0; i<L2.num_block; i++) {
             if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {     
                 ret.accessState = RH;
-                ret.memState = 0;//<-- idk
+                //move block from L2 to L1
+                L2.myset[set_index].myblock[i].valid = false;
+                ret.memState = addL1(addr);
+
                 return ret;  
             }
         }
-        //read miss
+        //read miss -> fectch from memmory to L1
+        ret.memState = addL1(addr);
+        ret.accessState = RM;
         return ret;
     }
 
-    void evictL1(bitset<32> addr) {
+    int addL1(bitset<32> addr) {
+        set_index = addr.to_ulong() % L1.num_set; 
+        for (int i=0; i<L1.num_block; i++) {
+            if(!L1.myset[set_index].myblock[i].valid) { //if there's an empty spot
+                L1.myset[set_index].myblock[i].valid = true;
+                L1.myset[set_index].myblock[i].tag = addr;
+                return NOWRITEMEM;
+            }
+        }
+        //if there's no empty spot -> evict
+        //push block to L2
+        int check_WB;
+        check_WB = addL2(L1.myset[set_index].myblock[L1.myset.counter].tag);
+        //replace block in L1 to new addr
+        L1.myset[set_index].myblock[L1.myset.counter].tag = addr;
 
+        return check_WB;
     }
 
-    void evictL2(bitset<32> addr) {
-        
+    int addL2(bitset<32> addr) {
+        set_index = addr.to_ulong() % L2.num_set; 
+        for (int i=0; i<L2.num_block; i++) {
+            if(!L2.myset[set_index].myblock[i].valid) { //if there's an empty spot
+                L2.myset[set_index].myblock[i].valid = true;
+                L2.myset[set_index].myblock[i].tag = addr;
+                return NOWRITEMEM;
+            }
+        }
+        //if there's no empty spot -> evict
+        //replace block in L1 to new addr
+        int check_WB;
+        if (L2.myset[set_index].myblock[L2.myset.counter].dirty) {
+            check_WB = WRITEMEM;
+        }
+        else{
+            check_WB = NOWRITEMEM;
+        }
+        L2.myset[set_index].myblock[L2.myset.counter].tag = addr;
+        return check_WB;     
     }
+
 };
 /*********************************** ↑↑↑ Todo: Implement by you ↑↑↑ ******************************************/
 
@@ -316,7 +352,6 @@ int main(int argc, char *argv[])
                     retMem ret = myCacheSystem.writeL2(accessaddr);
                     L2AcceState = ret.accessState;
                     MemAcceState = ret.memState;
-                    // L2AcceState, MemAcceState = myCacheSystem.writeL2(accessaddr);
                 }
                 else if (L1AcceState == WH){ //if L1 write hit
                     L2AcceState = NA;
