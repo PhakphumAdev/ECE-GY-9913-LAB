@@ -41,43 +41,57 @@ struct config
 };
 
 /*********************************** ↓↓↓ Todo: Implement by you ↓↓↓ ******************************************/
-// You need to define your cache class here, or design your own data structure for L1 and L2 cache
 
-/*
-A single cache block:
-    - valid bit (is the data in the block valid?)
-    - dirty bit (has the data in the block been modified by means of a write?)
-    - tag (the tag bits of the address)
-    - data (the actual data stored in the block, in our case, we don't need to store the data)
-*/
-struct CacheBlock
+struct cacheBlock
 {
-    // we don't actually need to allocate space for data, because we only need to simulate the cache action
-    // or else it would have looked something like this: vector<number of bytes> Data; 
+    //bitset<32> data  - no need for this lab
+    bitset<32> tag;
+    bool dirty = false;
+    bool valid = false;
 };
 
-/*
-A CacheSet:
-    - a vector of CacheBlocks
-    - a counter to keep track of which block to evict next
-*/
+
 struct set
 {
-    // tips: 
-    // Associativity: eg. resize to 4-ways set associative cache    
+    vector<CacheBlock>  myblock;
+    int counter = 0;
 };
 
+struct cache 
+{
+    vector<set> myset;
+    int num_set;
+    int num_block;
+}
+
 // You can design your own data structure for L1 and L2 cache; just an example here
-class cache
+class CacheSystem
 {
     // some cache configuration parameters.
     // cache L1 or L2
+    cache L1, L2;
+    int set_index;
+
 public:
-    cache(){
-        // initialize the cache according to cache parameters
+    CacheSystem(int block_size1, int num_way1, int cache_size1, int block_size2, int num_way2, int cache_size2) {
+        // initialize L1
+        L1.num_set = (cache_size1 * 1024) / block_size1;
+        L1.num_block = num_way1;
+        L1.myset.resize(L1.num_set);
+        for (i=0; i<L1.num_set; i++) {
+            L1.myset[i].myblock.resize(L1.num_block);
+        }
+
+        // initialize L1
+        L2.num_set = (cache_size1 * 1024) / block_size2;
+        L2.num_block = num_way2;
+        L2.myset.resize(L2.num_set);
+        for (i=0; i<L2.num_set; i++) {
+            L2.myset[i].myblock.resize(L2.num_block);
+        }
     }
 
-    auto write(auto addr){
+    auto writeL1(auto addr){
         /*
         step 1: select the set in our L1 cache using set index bits
         step 2: iterate through each way in the current set
@@ -87,6 +101,16 @@ public:
 
         return WH or WM
         */
+        set_index = addr % L1.num_set;        
+        for (i=0; i<L1.num_block; i++) {
+            if (L1.myset[set_index].myblock[i].tag == addr && L1.myset[set_index].myblock[i].valid) {
+                L1.myset[set_index].myblock[i].dirty = true;           
+                return WH;     
+            }
+        }
+        self.writeL2(addr);
+        return WM;
+
     }
 
     auto writeL2(auto addr){
@@ -99,6 +123,14 @@ public:
 
         return {WM or WH, WRITEMEM or NOWRITEMEM}
         */
+        set_index = addr % L2.num_set;        
+        for (i=0; i<L2.num_block; i++) {
+            if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {
+                L2.myset[set_index].myblock[i].dirty = true;           
+                return {WH, NOWRITEMEM};     
+            }
+        }
+        return {WM, WRITEMEM};
     }
 
     auto readL1(auto addr){
@@ -110,6 +142,15 @@ public:
 
         return RH or RM
         */
+        set_index = addr % L1.num_set; 
+        for (i=0; i<L2.num_block; i++) {
+            if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {        
+                return RH;  
+            }
+        }
+        return RM;
+
+
     }
 
     auto readL2(auto addr){
@@ -127,27 +168,23 @@ public:
 
         return {RM or RH, WRITEMEM or NOWRITEMEM}
         */
+        set_index = addr % L2.num_set; 
+        for (i=0; i<L2.num_block; i++) {
+            if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {        
+                return RH;  
+            }
+        }
+        //read miss
+        
     }
-};
 
-// Tips: another example:
-class CacheSystem
-{
-    Cache L1;
-    Cache L2;
-public:
-    int L1AcceState, L2AcceState, MemAcceState;
-    auto read(auto addr){};
-    auto write(auto addr){};
-};
-class Cache
-{
-    set * CacheSet;
-public:
-    auto read_access(auto addr){};
-    auto write_access(auto addr){};
-    auto check_exist(auto addr){};
-    auto evict(auto addr){};
+    auto evictL1(auto addr) {
+
+    }
+
+    auto evictL2(auto addr) {
+        
+    }
 };
 /*********************************** ↑↑↑ Todo: Implement by you ↑↑↑ ******************************************/
 
@@ -196,8 +233,11 @@ int main(int argc, char *argv[])
         printf("please test with the same block size\n");
         return 1;
     }
-    // cache c1(cacheconfig.L1blocksize, cacheconfig.L1setsize, cacheconfig.L1size,
-    //          cacheconfig.L2blocksize, cacheconfig.L2setsize, cacheconfig.L2size);
+
+    // create caches
+    CacheSystem myCacheSystem(cacheconfig.L1blocksize, cacheconfig.L1setsize, cacheconfig.L1size,
+                              cacheconfig.L2blocksize, cacheconfig.L2setsize, cacheconfig.L2size)
+
 
     int L1AcceState = 0; // L1 access state variable, can be one of NA, RH, RM, WH, WM;
     int L2AcceState = 0; // L2 access state variable, can be one of NA, RH, RM, WH, WM;
@@ -231,6 +271,15 @@ int main(int argc, char *argv[])
                 //     L2AcceState, MemAcceState = cache.readL2(addr); // if L1 read miss, read L2
                 // }
                 // else{ ... }
+                L1AcceState = myCacheSystem.readL1(addr);
+                if(L1AcceState == RM){
+                    L2AcceState, MemAcceState = cache.readL2(addr); // if L1 read miss, read L2
+                }
+                else{   //if L1 read hit,
+                    L2AcceState = NA;
+                    MemAcceState = NOWRITEMEM;
+                }
+
             }
             else{ // a Write request
                 // Implement by you:
@@ -244,6 +293,14 @@ int main(int argc, char *argv[])
                 //     L2AcceState, MemAcceState = cache.writeL2(addr);
                 // }
                 // else if(){...}
+                L1AcceState = cache.writeL1(addr);
+                if (L1AcceState == WM){
+                    L2AcceState, MemAcceState = cache.writeL2(addr);
+                }
+                else (L1AcceState == WH){ //if L1 write hit
+                    L2AcceState = NA;
+                    MemAcceState = NOWRITEMEM;
+                }
             }
 /*********************************** ↑↑↑ Todo: Implement by you ↑↑↑ ******************************************/
 
