@@ -90,15 +90,6 @@ public:
     }
 
     int writeL1(bitset<32> addr){
-        /*
-        step 1: select the set in our L1 cache using set index bits
-        step 2: iterate through each way in the current set
-            - If Matching tag and Valid Bit High -> WriteHit!
-                                                    -> Dirty Bit High
-        step 3: Otherwise? -> WriteMiss!
-
-        return WH or WM
-        */
         set_index = addr.to_ullong() % L1.num_set;        
         for (int i=0; i<L1.num_block; i++) {
             if (L1.myset[set_index].myblock[i].tag == addr && L1.myset[set_index].myblock[i].valid) {
@@ -110,16 +101,7 @@ public:
 
     }
 
-    retMem writeL2(bitset<32> addr){
-        /*
-        step 1: select the set in our L2 cache using set index bits
-        step 2: iterate through each way in the current set
-            - If Matching tag and Valid Bit High -> WriteHit!
-                                                 -> Dirty Bit High
-        step 3: Otherwise? -> WriteMiss!
-
-        return {WM or WH, WRITEMEM or NOWRITEMEM}
-        */
+    int writeL2(bitset<32> addr){
         set_index = addr.to_ulong() % L2.num_set;      
         for (int i=0; i<L2.num_block; i++) {
             if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {
@@ -351,6 +333,24 @@ int main(int argc, char *argv[])
                     MemAcceState = NOWRITEMEM;
                 }
 
+            }
+
+            /*###########################  DEBUGGING   #############################*/
+            cout >> "L1"
+            for (int i=0; i<L1.num_set; i++){
+                bool temp[L1.num_block];
+                for (int j=0; j<L1.num_block; j++){
+                    temp[j] = L1.myset[i].myblock[j].valid;
+                }
+                cout >> temp;
+            }
+            cout >> "L2"
+            for (int i=0; i<L2.num_set; i++){
+                bool temp[L2.num_block];
+                for (int j=0; j<L2.num_block; j++){
+                    temp[j] = L2.myset[i].myblock[j].valid;
+                }
+                cout >> temp;
             }
 /*********************************** ↑↑↑ Todo: Implement by you ↑↑↑ ******************************************/
 
