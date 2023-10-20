@@ -42,6 +42,10 @@ struct config
 
 /*********************************** ↓↓↓ Todo: Implement by you ↓↓↓ ******************************************/
 
+struct retMem{
+    int accessState;
+    int memState;
+};
 struct cacheBlock
 {
     //bitset<32> data  - no need for this lab
@@ -53,7 +57,7 @@ struct cacheBlock
 
 struct set
 {
-    vector<CacheBlock>  myblock;
+    vector<cacheBlock>  myblock;
     int counter = 0;
 };
 
@@ -62,7 +66,7 @@ struct cache
     vector<set> myset;
     int num_set;
     int num_block;
-}
+};
 
 // You can design your own data structure for L1 and L2 cache; just an example here
 class CacheSystem
@@ -78,7 +82,7 @@ public:
         L1.num_set = (cache_size1 * 1024) / block_size1;
         L1.num_block = num_way1;
         L1.myset.resize(L1.num_set);
-        for (i=0; i<L1.num_set; i++) {
+        for (int i=0; i<L1.num_set; i++) {
             L1.myset[i].myblock.resize(L1.num_block);
         }
 
@@ -86,12 +90,12 @@ public:
         L2.num_set = (cache_size1 * 1024) / block_size2;
         L2.num_block = num_way2;
         L2.myset.resize(L2.num_set);
-        for (i=0; i<L2.num_set; i++) {
+        for (int i=0; i<L2.num_set; i++) {
             L2.myset[i].myblock.resize(L2.num_block);
         }
     }
 
-    auto writeL1(auto addr){
+    int writeL1(bitset<32> addr){
         /*
         step 1: select the set in our L1 cache using set index bits
         step 2: iterate through each way in the current set
@@ -101,19 +105,19 @@ public:
 
         return WH or WM
         */
-        set_index = addr % L1.num_set;        
-        for (i=0; i<L1.num_block; i++) {
+        set_index = addr.to_ullong() % L1.num_set;        
+        for (int i=0; i<L1.num_block; i++) {
             if (L1.myset[set_index].myblock[i].tag == addr && L1.myset[set_index].myblock[i].valid) {
                 L1.myset[set_index].myblock[i].dirty = true;           
                 return WH;     
             }
         }
-        self.writeL2(addr);
+        // writeL2(addr);
         return WM;
 
     }
 
-    auto writeL2(auto addr){
+    retMem writeL2(bitset<32> addr){
         /*
         step 1: select the set in our L2 cache using set index bits
         step 2: iterate through each way in the current set
@@ -123,17 +127,24 @@ public:
 
         return {WM or WH, WRITEMEM or NOWRITEMEM}
         */
-        set_index = addr % L2.num_set;        
-        for (i=0; i<L2.num_block; i++) {
+        set_index = addr.to_ulong() % L2.num_set;   
+        retMem ret;     
+        for (int i=0; i<L2.num_block; i++) {
             if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {
-                L2.myset[set_index].myblock[i].dirty = true;           
-                return {WH, NOWRITEMEM};     
+                L2.myset[set_index].myblock[i].dirty = true;
+                ret.accessState = WH;
+                ret.memState = NOWRITEMEM;   
+                return ret;   
+                // return {WH, NOWRITEMEM};     
             }
         }
-        return {WM, WRITEMEM};
+        ret.accessState = WM;
+        ret.memState = WRITEMEM;
+        return ret;
+        // return {WM, WRITEMEM};
     }
 
-    auto readL1(auto addr){
+    int readL1(bitset<32> addr){
         /*
         step 1: select the set in our L1 cache using set index bits
         step 2: iterate through each way in the current set
@@ -142,8 +153,8 @@ public:
 
         return RH or RM
         */
-        set_index = addr % L1.num_set; 
-        for (i=0; i<L2.num_block; i++) {
+        set_index = addr.to_ulong() % L1.num_set; 
+        for (int i=0; i<L2.num_block; i++) {
             if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {        
                 return RH;  
             }
@@ -153,7 +164,7 @@ public:
 
     }
 
-    auto readL2(auto addr){
+    retMem readL2(bitset<32> addr){
         /*
         step 1: select the set in our L2 cache using set index bits
         step 2: iterate through each way in the current set
@@ -168,21 +179,24 @@ public:
 
         return {RM or RH, WRITEMEM or NOWRITEMEM}
         */
-        set_index = addr % L2.num_set; 
-        for (i=0; i<L2.num_block; i++) {
-            if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {        
-                return RH;  
+       retMem ret;
+        set_index = addr.to_ulong() % L2.num_set; 
+        for (int i=0; i<L2.num_block; i++) {
+            if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {     
+                ret.accessState = RH;
+                ret.memState = 0;//<-- idk
+                return ret;  
             }
         }
         //read miss
-        
+        return ret;
     }
 
-    auto evictL1(auto addr) {
+    void evictL1(bitset<32> addr) {
 
     }
 
-    auto evictL2(auto addr) {
+    void evictL2(bitset<32> addr) {
         
     }
 };
@@ -236,7 +250,7 @@ int main(int argc, char *argv[])
 
     // create caches
     CacheSystem myCacheSystem(cacheconfig.L1blocksize, cacheconfig.L1setsize, cacheconfig.L1size,
-                              cacheconfig.L2blocksize, cacheconfig.L2setsize, cacheconfig.L2size)
+                              cacheconfig.L2blocksize, cacheconfig.L2setsize, cacheconfig.L2size);
 
 
     int L1AcceState = 0; // L1 access state variable, can be one of NA, RH, RM, WH, WM;
@@ -271,9 +285,12 @@ int main(int argc, char *argv[])
                 //     L2AcceState, MemAcceState = cache.readL2(addr); // if L1 read miss, read L2
                 // }
                 // else{ ... }
-                L1AcceState = myCacheSystem.readL1(addr);
+                L1AcceState = myCacheSystem.readL1(accessaddr);
                 if(L1AcceState == RM){
-                    L2AcceState, MemAcceState = cache.readL2(addr); // if L1 read miss, read L2
+                    retMem ret = myCacheSystem.readL2(accessaddr);
+                    L2AcceState = ret.accessState;
+                    MemAcceState = ret.memState;
+                    // L2AcceState, MemAcceState = myCacheSystem.readL2(accessaddr); // if L1 read miss, read L2
                 }
                 else{   //if L1 read hit,
                     L2AcceState = NA;
@@ -293,11 +310,15 @@ int main(int argc, char *argv[])
                 //     L2AcceState, MemAcceState = cache.writeL2(addr);
                 // }
                 // else if(){...}
-                L1AcceState = cache.writeL1(addr);
+                L1AcceState = myCacheSystem.writeL1(accessaddr);
                 if (L1AcceState == WM){
-                    L2AcceState, MemAcceState = cache.writeL2(addr);
+                    myCacheSystem.writeL2(accessaddr);
+                    retMem ret = myCacheSystem.writeL2(accessaddr);
+                    L2AcceState = ret.accessState;
+                    MemAcceState = ret.memState;
+                    // L2AcceState, MemAcceState = myCacheSystem.writeL2(accessaddr);
                 }
-                else (L1AcceState == WH){ //if L1 write hit
+                else if (L1AcceState == WH){ //if L1 write hit
                     L2AcceState = NA;
                     MemAcceState = NOWRITEMEM;
                 }
