@@ -67,10 +67,10 @@ struct cache
 
 class CacheSystem
 {
+public:
     cache L1, L2;
     int set_index;  //used to iterate through each set
 
-public:
     CacheSystem(int block_size1, int num_way1, int cache_size1, int block_size2, int num_way2, int cache_size2) {
         // initialize L1
         L1.num_set = (cache_size1 * 1024) / block_size1;
@@ -206,14 +206,14 @@ public:
         //if there's no empty spot -> evict
         //replace block in L2 to new addr
         int check_WB;
-        if (L2.myset[set_index].myblock[L2.myset.counter].dirty) {
+        if (L2.myset[set_index].myblock[L2.myset[set_index].counter].dirty) {
             check_WB = WRITEMEM;
         }
         else{
             check_WB = NOWRITEMEM;
         }
-        L2.myset[set_index].myblock[L2.myset.counter].tag = addr;
-        L2.myset[set_index].myblock[L2.myset.counter].dirty = dirt;
+        L2.myset[set_index].myblock[L2.myset[set_index].counter].tag = addr;
+        L2.myset[set_index].myblock[L2.myset[set_index].counter].dirty = dirt;
 
         //increment counter
         L2.myset[set_index].counter++;
@@ -336,21 +336,21 @@ int main(int argc, char *argv[])
             }
 
             /*###########################  DEBUGGING   #############################*/
-            cout >> "L1"
-            for (int i=0; i<L1.num_set; i++){
-                bool temp[L1.num_block];
-                for (int j=0; j<L1.num_block; j++){
-                    temp[j] = L1.myset[i].myblock[j].valid;
+            // cout << "L1";
+            for(int i=0; i<myCacheSystem.L1.num_set; i++){
+                bool temp[myCacheSystem.L1.num_block];
+                for (int j=0; j<myCacheSystem.L1.num_block; j++){
+                    temp[j] = myCacheSystem.L1.myset[i].myblock[j].valid;
                 }
-                cout >> temp;
+                // cout << temp;
             }
-            cout >> "L2"
-            for (int i=0; i<L2.num_set; i++){
-                bool temp[L2.num_block];
-                for (int j=0; j<L2.num_block; j++){
-                    temp[j] = L2.myset[i].myblock[j].valid;
+            // cout << "L2";
+            for (int i=0; i<myCacheSystem.L2.num_set; i++){
+                bool temp[myCacheSystem.L2.num_block];
+                for (int j=0; j<myCacheSystem.L2.num_block; j++){
+                    temp[j] = myCacheSystem.L2.myset[i].myblock[j].valid;
                 }
-                cout >> temp;
+                // cout << temp;
             }
 /*********************************** ↑↑↑ Todo: Implement by you ↑↑↑ ******************************************/
 
