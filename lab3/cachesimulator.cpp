@@ -122,8 +122,8 @@ public:
         return RH or RM
         */
         set_index = addr.to_ulong() % L1.num_set; 
-        for (int i=0; i<L2.num_block; i++) {
-            if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {        
+        for (int i=0; i<L1.num_block; i++) {
+            if (L1.myset[set_index].myblock[i].tag == addr && L1.myset[set_index].myblock[i].valid) {        
                 return RH;  
             }
         }
@@ -336,22 +336,32 @@ int main(int argc, char *argv[])
             }
 
             /*###########################  DEBUGGING   #############################*/
-            // cout << "L1";
-            for(int i=0; i<myCacheSystem.L1.num_set; i++){
-                bool temp[myCacheSystem.L1.num_block];
-                for (int j=0; j<myCacheSystem.L1.num_block; j++){
-                    temp[j] = myCacheSystem.L1.myset[i].myblock[j].valid;
-                }
-                // cout << temp;
-            }
+            //  cout << "L1:" ;
+            // for(int i=0; i<myCacheSystem.L1.num_set; i++){
+            //    for(int j=0;j<myCacheSystem.L1.num_block;j++){
+            //     cout << myCacheSystem.L1.myset[i].myblock[j].valid;
+            // }
+            // cout << '\n';
+            // }
             // cout << "L2";
-            for (int i=0; i<myCacheSystem.L2.num_set; i++){
-                bool temp[myCacheSystem.L2.num_block];
-                for (int j=0; j<myCacheSystem.L2.num_block; j++){
-                    temp[j] = myCacheSystem.L2.myset[i].myblock[j].valid;
-                }
-                // cout << temp;
-            }
+            // for(int i=0; i<myCacheSystem.L2.num_set; i++){
+            //    for(int j=0;j<myCacheSystem.L2.num_block;j++){
+            //     cout << myCacheSystem.L2.myset[i].myblock[j].tag;
+            // }
+            // cout << '\n';
+            // }
+            // cout << '\n';
+            //  cout << "L2";
+            // for (int i=0; i<myCacheSystem.L2.num_set; i++){
+            //     bool temp[myCacheSystem.L2.num_block];
+            //     for (int j=0; j<myCacheSystem.L2.num_block; j++){
+            //         temp[j] = myCacheSystem.L2.myset[i].myblock[j].valid;
+            //     }
+            //     for(int j=0;j<myCacheSystem.L2.num_block;j++){
+            //         cout << temp[j];
+            //     }cout << '\n';            
+            //     }
+
 /*********************************** ↑↑↑ Todo: Implement by you ↑↑↑ ******************************************/
 
 
