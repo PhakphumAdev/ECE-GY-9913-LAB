@@ -206,9 +206,15 @@ public:
         //if there's no empty spot -> evict
         //push block to L2
         int check_WB;
-        check_WB = addL2(L1.myset[set_index].myblock[L1.myset.counter].tag);
+        check_WB = addL2(L1.myset[set_index].myblock[L1.myset[set_index].counter].tag);
+        L1.myset[set_index].counter++;
+        if (L1.myset[set_index].counter == L1.num_block) {
+            L1.myset[set_index].counter = 0;
+        }
+
         //replace block in L1 to new addr
-        L1.myset[set_index].myblock[L1.myset.counter].tag = addr;
+        L1.myset[set_index].myblock[L1.myset[set_index].counter].tag = addr;
+        L1.myset[set_index].myblock[L1.myset[set_index].counter].dirty = false;
 
         return check_WB;
     }
@@ -232,6 +238,13 @@ public:
             check_WB = NOWRITEMEM;
         }
         L2.myset[set_index].myblock[L2.myset.counter].tag = addr;
+        L2.myset[set_index].myblock[L2.myset.counter].dirty = false;
+
+        L2.myset[set_index].counter++;
+        if (L2.myset[set_index].counter == L2.num_block) {
+            L2.myset[set_index].counter = 0;
+        }
+        
         return check_WB;     
     }
 
