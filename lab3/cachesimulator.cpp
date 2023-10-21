@@ -250,6 +250,7 @@ public:
         //if there's no empty spot -> evict
         //push block to L2
         int check_WB;
+        bitset<32> temp_addr = to_string(L1.myset[index].myblock[L1.myset[index].counter].tag) + to_string(index) + "000"; // (+retDec.offsetsize)
         check_WB = addL2(L1.myset[index].myblock[L1.myset[index].counter].tag, 
                         L1.myset[index].myblock[L1.myset[index].counter].dirty);
 
@@ -386,7 +387,6 @@ int main(int argc, char *argv[])
                     retMem ret = myCacheSystem.readL2(accessaddr);
                     L2AcceState = ret.accessState;
                     MemAcceState = ret.memState;
-                    // L2AcceState, MemAcceState = myCacheSystem.readL2(accessaddr); // if L1 read miss, read L2
                     if (L1AcceState == RM && L2AcceState == RM) {
                         MemAcceState = NOWRITEMEM;
                     }
