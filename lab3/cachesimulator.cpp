@@ -295,6 +295,9 @@ int main(int argc, char *argv[])
             saddr >> std::hex >> addr;
             accessaddr = bitset<32>(addr);
 
+            /* Calculate Block Address from the given addr*/
+            accessaddr = bitset<32>(accessaddr.to_string().substr(0,30) + "00")
+
             /* Read and Write Functions*/
             // a Read request
             if (accesstype.compare("R") == 0)  
