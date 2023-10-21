@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
             accessaddr = bitset<32>(addr);
 
             /* Calculate Block Address from the given addr*/
-            accessaddr = bitset<32>(accessaddr.to_string().substr(0,30) + "00")
+            accessaddr = bitset<32>(accessaddr.to_string().substr(0,28) + "0000");
 
             /* Read and Write Functions*/
             // a Read request
