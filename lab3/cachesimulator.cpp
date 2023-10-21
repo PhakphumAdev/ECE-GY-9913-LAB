@@ -63,6 +63,7 @@ struct cache
     vector<set> myset;
     int num_set;
     int num_block;
+    int block_size;
 };
 
 class CacheSystem
@@ -75,6 +76,7 @@ public:
         // initialize L1
         L1.num_set = (cache_size1 * 1024) / (block_size1 * num_way1);
         L1.num_block = num_way1;
+        L1.block_size = block_size1;
         L1.myset.resize(L1.num_set);
         for (int i=0; i<L1.num_set; i++) {
             L1.myset[i].myblock.resize(L1.num_block);
@@ -83,17 +85,35 @@ public:
         // initialize L2
         L2.num_set = (cache_size1 * 1024) / (block_size2 * num_way2);
         L2.num_block = num_way2;
+        L2.block_size = block_size2;
         L2.myset.resize(L2.num_set);
         for (int i=0; i<L2.num_set; i++) {
             L2.myset[i].myblock.resize(L2.num_block);
         }
     }
 
+    code decodeL1 (bitset<32> addr) {
+        code ret;
+        ret.offset = bitset<32> (addr.to_string().substring(32-log2(L1.block_size),32));
+        ret.index = bitset<32> (addr.to_string().substring(32-log2(L1.block_size)-log2(L1.num_set),32-log2(L1.block_size));
+        ret.tag = bitset<32> (addr.to_string().substring(0, 32-log2(L1.block_size)-log2(L1.num_set)));
+        return ret;
+    }
+
+    code decodeL2 (bitset<32> addr) {
+        code ret;
+        ret.offset = bitset<32> (addr.to_string().substring(32-log2(L2.block_size),32));
+        ret.index = bitset<32> (addr.to_string().substring(32-log2(L2.block_size)-log2(L2.num_set),32-log2(L2.block_size));
+        ret.tag = bitset<32> (addr.to_string().substring(0, 32-log2(L2.block_size)-log2(L2.num_set)));
+        return ret;
+    }
+
     int writeL1(bitset<32> addr){
-        set_index = addr.to_ullong() % L1.num_set;        
+        [tag, index, offset] = decodeL1(addr);
+        //set_index = addr.to_ullong() % L1.num_set;        
         for (int i=0; i<L1.num_block; i++) {
-            if (L1.myset[set_index].myblock[i].tag == addr && L1.myset[set_index].myblock[i].valid) {
-                L1.myset[set_index].myblock[i].dirty = true;           
+            if (L1.myset[index].myblock[i].tag == tag && L1.myset[index].myblock[i].valid) {
+                L1.myset[index].myblock[i].dirty = true;           
                 return WH;     
             }
         }
@@ -102,10 +122,11 @@ public:
     }
 
     int writeL2(bitset<32> addr){
-        set_index = addr.to_ulong() % L2.num_set;      
+        //set_index = addr.to_ulong() % L2.num_set;   
+        [tag, index, offset] = decodeL2(addr);   
         for (int i=0; i<L2.num_block; i++) {
-            if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {
-                L2.myset[set_index].myblock[i].dirty = true; 
+            if (L2.myset[index].myblock[i].tag == tag && L2.myset[index].myblock[i].valid) {
+                L2.myset[index].myblock[i].dirty = true; 
                 return WH;      
             }
         }
@@ -121,7 +142,8 @@ public:
 
         return RH or RM
         */
-        set_index = addr.to_ulong() % L1.num_set; 
+        //set_index = addr.to_ulong() % L1.num_set; 
+        [tag, index, offset] = decodeL1(addr);
         for (int i=0; i<L1.num_block; i++) {
             if (L1.myset[set_index].myblock[i].tag == addr && L1.myset[set_index].myblock[i].valid) {        
                 return RH;  
@@ -146,7 +168,8 @@ public:
         return {RM or RH, WRITEMEM or NOWRITEMEM}
         */
         retMem ret;
-        set_index = addr.to_ulong() % L2.num_set; 
+        [tag, index, offset] = decodeL1(addr);
+        //set_index = addr.to_ulong() % L2.num_set; 
         for (int i=0; i<L2.num_block; i++) {
             if (L2.myset[set_index].myblock[i].tag == addr && L2.myset[set_index].myblock[i].valid) {     
                 ret.accessState = RH;              
@@ -165,7 +188,8 @@ public:
     }
 
     int addL1(bitset<32> addr, bool dirt) {
-        set_index = addr.to_ulong() % L1.num_set; 
+        //set_index = addr.to_ulong() % L1.num_set; 
+        [tag, index, offset] = decodeL1(addr);
         for (int i=0; i<L1.num_block; i++) {
             if(!L1.myset[set_index].myblock[i].valid) { //if there's an empty spot
                 L1.myset[set_index].myblock[i].valid = true;
@@ -194,7 +218,8 @@ public:
     }
 
     int addL2(bitset<32> addr, bool dirt) {
-        set_index = addr.to_ulong() % L2.num_set; 
+        //set_index = addr.to_ulong() % L2.num_set; 
+        [tag, index, offset] = decodeL1(addr);
         for (int i=0; i<L2.num_block; i++) {
             if(!L2.myset[set_index].myblock[i].valid) { //if there's an empty spot
                 L2.myset[set_index].myblock[i].valid = true;
@@ -294,9 +319,6 @@ int main(int argc, char *argv[])
             stringstream saddr(xaddr);
             saddr >> std::hex >> addr;
             accessaddr = bitset<32>(addr);
-
-            /* Calculate Block Address from the given addr*/
-            accessaddr = bitset<32>(accessaddr.to_string().substr(0,26) + "000000");
 
             /* Read and Write Functions*/
             // a Read request
