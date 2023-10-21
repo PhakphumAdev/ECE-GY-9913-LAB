@@ -73,7 +73,7 @@ public:
 
     CacheSystem(int block_size1, int num_way1, int cache_size1, int block_size2, int num_way2, int cache_size2) {
         // initialize L1
-        L1.num_set = (cache_size1 * 1024) / block_size1;
+        L1.num_set = (cache_size1 * 1024) / (block_size1 * num_way1);
         L1.num_block = num_way1;
         L1.myset.resize(L1.num_set);
         for (int i=0; i<L1.num_set; i++) {
@@ -81,7 +81,7 @@ public:
         }
 
         // initialize L2
-        L2.num_set = (cache_size1 * 1024) / block_size2;
+        L2.num_set = (cache_size1 * 1024) / (block_size2 * num_way2);
         L2.num_block = num_way2;
         L2.myset.resize(L2.num_set);
         for (int i=0; i<L2.num_set; i++) {
@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
             accessaddr = bitset<32>(addr);
 
             /* Calculate Block Address from the given addr*/
-            accessaddr = bitset<32>(accessaddr.to_string().substr(0,28) + "0000");
+            accessaddr = bitset<32>(accessaddr.to_string().substr(0,26) + "000000");
 
             /* Read and Write Functions*/
             // a Read request
