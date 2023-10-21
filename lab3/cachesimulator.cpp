@@ -61,6 +61,7 @@ struct cacheBlock
     unsigned long tag = 0;
     bool dirty = false;
     bool valid = false;
+    bitset<32>addr;
 };
 struct set
 {
@@ -108,7 +109,7 @@ public:
 
     retDecode decodeL1 (bitset<32> addr) {
         retDecode ret;
-        int offset_size = 32-log(L1.block_size);
+        int offset_size = log(L1.block_size);
         int index_size = 32-log2(L1.block_size)-log2(L1.num_set);
         int tag_size = 32-log2(L1.block_size)-log2(L1.num_set);
         unsigned long offset = (bitset<32>(split_str(32-log2(L1.block_size),32,addr.to_string()))).to_ulong();
@@ -128,7 +129,7 @@ public:
 
     retDecode decodeL2 (bitset<32> addr) {
         retDecode ret;
-        int offset_size = 32-log(L2.block_size);
+        int offset_size = log(L2.block_size);
         int index_size = 32-log2(L2.block_size)-log2(L2.num_set);
         int tag_size = 32-log2(L2.block_size)-log2(L2.num_set);
         unsigned long offset = (bitset<32>(split_str(32-log2(L2.block_size),32,addr.to_string()))).to_ulong();
@@ -244,18 +245,22 @@ public:
                 L1.myset[index].myblock[i].valid = true;
                 L1.myset[index].myblock[i].dirty = dirt;
                 L1.myset[index].myblock[i].tag = tag;
+                L1.myset[index].myblock[i].addr = addr;
                 return NOWRITEMEM;
             }
         }
         //if there's no empty spot -> evict
         //push block to L2
         int check_WB;
-        bitset<32> temp_addr = to_string(L1.myset[index].myblock[L1.myset[index].counter].tag) + to_string(index) + "000"; // (+retDec.offsetsize)
-        check_WB = addL2(L1.myset[index].myblock[L1.myset[index].counter].tag, 
+        // int tagint = L1.myset[index].myblock[L1.myset[index].counter].tag;
+        // string str_temp = to_string(tagint)+ "000";
+        // bitset<32> temp_addr(str_temp); // (+retDec.offsetsize)
+        check_WB = addL2(L1.myset[index].myblock[L1.myset[index].counter].addr, 
                         L1.myset[index].myblock[L1.myset[index].counter].dirty);
 
         //replace block in L1 to new addr
         L1.myset[index].myblock[L1.myset[index].counter].tag = tag;
+        L1.myset[index].myblock[L1.myset[index].counter].addr = addr; 
         L1.myset[index].myblock[L1.myset[index].counter].dirty = dirt;
 
         //increment counter
@@ -277,6 +282,7 @@ public:
             if(!L2.myset[index].myblock[i].valid) { //if there's an empty spot
                 L2.myset[index].myblock[i].valid = true;
                 L2.myset[index].myblock[i].tag = tag;
+                L2.myset[index].myblock[i].addr = addr;
                 L2.myset[index].myblock[i].dirty = dirt;
                 return NOWRITEMEM;
             }
@@ -291,6 +297,7 @@ public:
             check_WB = NOWRITEMEM;
         }
         L2.myset[index].myblock[L2.myset[index].counter].tag = tag;
+        L2.myset[index].myblock[L2.myset[index].counter].addr = addr;
         L2.myset[index].myblock[L2.myset[index].counter].dirty = dirt;
 
         //increment counter
