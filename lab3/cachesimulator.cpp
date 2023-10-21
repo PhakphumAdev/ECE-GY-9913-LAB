@@ -387,6 +387,9 @@ int main(int argc, char *argv[])
                     L2AcceState = ret.accessState;
                     MemAcceState = ret.memState;
                     // L2AcceState, MemAcceState = myCacheSystem.readL2(accessaddr); // if L1 read miss, read L2
+                    if (L1AcceState == RM && L2AcceState == RM) {
+                        MemAcceState = NOWRITEMEM;
+                    }
                 }
 
             }
