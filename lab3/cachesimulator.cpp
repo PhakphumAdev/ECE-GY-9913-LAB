@@ -191,7 +191,7 @@ public:
         for (int i=0; i<L2.num_block; i++) {
             if (L2.myset[index].myblock[i].tag == tag && L2.myset[index].myblock[i].valid) {                
                 //move the block from L2 to L1  
-                bool dirty_temp = L2.myset[index].myblock[i].dirty = false
+                bool dirty_temp = L2.myset[index].myblock[i].dirty;
                 L2.myset[index].myblock[i].valid = false;   
                 L2.myset[index].myblock[i].dirty = false;
                 ret.memState = addL1(addr, dirty_temp);
@@ -212,7 +212,7 @@ public:
         int index = retDec.index;
         unsigned long tag = retDec.tag;
         for (int i=0; i<L1.num_block; i++) {
-            if(!L1.myset[index].myblock[i].valid && L1.myset[index].myblock[i].tag != tag) { //if there's an empty spot
+            if(!L1.myset[index].myblock[i].valid) { //if there's an empty spot
                 L1.myset[index].myblock[i].valid = true;
                 L1.myset[index].myblock[i].dirty = dirt;
                 L1.myset[index].myblock[i].tag = tag;
@@ -246,7 +246,7 @@ public:
         int index = retDec.index;
         unsigned long tag = retDec.tag;
         for (int i=0; i<L2.num_block; i++) {
-            if(!L2.myset[index].myblock[i].valid && L2.myset[index].myblock[i].tag != tag) { //if there's an empty spot
+            if(!L2.myset[index].myblock[i].valid) { //if there's an empty spot
                 L2.myset[index].myblock[i].tag = tag;
                 L2.myset[index].myblock[i].addr = addr;
                 L2.myset[index].myblock[i].dirty = dirt;
@@ -273,7 +273,6 @@ public:
         if (L2.myset[index].counter == L2.num_block) {
             L2.myset[index].counter = 0;
         }
-        
         return check_WB;     
     }
 
@@ -363,7 +362,6 @@ int main(int argc, char *argv[])
                     L2AcceState = ret.accessState;
                     MemAcceState = ret.memState;
                 }
-
             }
             // a Write request
             else{ 
