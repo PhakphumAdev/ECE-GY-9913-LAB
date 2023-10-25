@@ -192,9 +192,9 @@ public:
             if (L2.myset[index].myblock[i].tag == tag && L2.myset[index].myblock[i].valid) {                
                 //move the block from L2 to L1  
                 bool dirty_temp = L2.myset[index].myblock[i].dirty;
-                ret.memState = addL1(addr, dirty_temp);
                 L2.myset[index].myblock[i].valid = false;   
                 L2.myset[index].myblock[i].dirty = false;
+                ret.memState = addL1(addr, dirty_temp);                
                 ret.accessState = RH;   
                 
                 //return
@@ -222,11 +222,12 @@ public:
         }
         //if there's no empty spot -> evict
         //push block to L2
-        L1.myset[index].myblock[L1.myset[index].counter].valid = false;
         int check_WB;
-        check_WB = addL2(L1.myset[index].myblock[L1.myset[index].counter].addr, 
-                        L1.myset[index].myblock[L1.myset[index].counter].dirty);
-        L1.myset[index].myblock[L1.myset[index].counter].dirty = false;
+        bool dirty_temp = L1.myset[index].myblock[L1.myset[index].counter].dirty
+        L1.myset[index].myblock[L1.myset[index].counter].valid = false;
+        L1.myset[index].myblock[L1.myset[index].counter].dirty = false;        
+        check_WB = addL2(L1.myset[index].myblock[L1.myset[index].counter].addr, dirty_temp);
+        
 
         //replace block in L1 to new addr
         L1.myset[index].myblock[L1.myset[index].counter].tag = tag;
