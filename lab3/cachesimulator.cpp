@@ -59,7 +59,7 @@ struct cacheBlock
 {
     //bitset<32> data  - no need for this lab
     unsigned long tag = 0;
-    bool dirty = true;
+    bool dirty = false;
     bool valid = false;
     bitset<32>addr;
 };
