@@ -59,7 +59,7 @@ struct cacheBlock
 {
     //bitset<32> data  - no need for this lab
     unsigned long tag = 0;
-    bool dirty = false;
+    bool dirty = true;
     bool valid = false;
     bitset<32>addr;
 };
@@ -223,7 +223,7 @@ public:
         //if there's no empty spot -> evict
         //push block to L2
         int check_WB;
-        bool dirty_temp = L1.myset[index].myblock[L1.myset[index].counter].dirty
+        bool dirty_temp = L1.myset[index].myblock[L1.myset[index].counter].dirty;
         L1.myset[index].myblock[L1.myset[index].counter].valid = false;
         L1.myset[index].myblock[L1.myset[index].counter].dirty = false;        
         check_WB = addL2(L1.myset[index].myblock[L1.myset[index].counter].addr, dirty_temp);
@@ -387,33 +387,6 @@ int main(int argc, char *argv[])
                 }
 
             }
-
-            /*###########################  DEBUGGING   #############################*/
-            //  cout << "L1:" ;
-            // for(int i=0; i<myCacheSystem.L1.num_set; i++){
-            //    for(int j=0;j<myCacheSystem.L1.num_block;j++){
-            //     cout << myCacheSystem.L1.myset[i].myblock[j].valid;
-            // }
-            // cout << '\n';
-            // }
-            // cout << "L2";
-            // for(int i=0; i<myCacheSystem.L2.num_set; i++){
-            //    for(int j=0;j<myCacheSystem.L2.num_block;j++){
-            //     cout << myCacheSystem.L2.myset[i].myblock[j].tag;
-            // }
-            // cout << '\n';
-            // }
-            // cout << '\n';
-            //  cout << "L2";
-            // for (int i=0; i<myCacheSystem.L2.num_set; i++){
-            //     bool temp[myCacheSystem.L2.num_block];
-            //     for (int j=0; j<myCacheSystem.L2.num_block; j++){
-            //         temp[j] = myCacheSystem.L2.myset[i].myblock[j].valid;
-            //     }
-            //     for(int j=0;j<myCacheSystem.L2.num_block;j++){
-            //         cout << temp[j];
-            //     }cout << '\n';            
-            //     }
 
 /*********************************** ↑↑↑ Todo: Implement by you ↑↑↑ ******************************************/
 
