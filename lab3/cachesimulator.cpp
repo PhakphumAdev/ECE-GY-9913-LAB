@@ -85,7 +85,6 @@ class CacheSystem
 {
 public:
     cache L1, L2;
-    int set_index;  //used to iterate through each set
 
     CacheSystem(int block_size1, int num_way1, int cache_size1, int block_size2, int num_way2, int cache_size2) {
         // initialize L1
@@ -110,31 +109,28 @@ public:
     retDecode decodeL1 (bitset<32> addr) {
         retDecode ret;
         int offset_size = log2(L1.block_size);
-        int index_size = 32-log2(L1.block_size)-log2(L1.num_set);
-        int tag_size = 32-log2(L1.block_size)-log2(L1.num_set);
-        unsigned long offset = (bitset<32>(split_str(32-log2(L1.block_size),32,addr.to_string()))).to_ulong();
-        unsigned long index = (bitset<32>(split_str(32-log2(L1.block_size)-log2(L1.num_set),32-log2(L1.block_size),addr.to_string()))).to_ulong();
-        unsigned long tag = (bitset<32>(split_str(0,32-log2(L1.block_size)-log2(L1.num_set),addr.to_string()))).to_ulong();
+        int index_size = log2(L1.num_set);
+        int tag_size = 32 - offset_size - index_size;
+        unsigned long offset = (bitset<32>(split_str(32-offset_size,32,addr.to_string()))).to_ulong();
+        unsigned long index = (bitset<32>(split_str(tag_size,32-offset_size,addr.to_string()))).to_ulong();
+        unsigned long tag = (bitset<32>(split_str(0,tag_size,addr.to_string()))).to_ulong();
         ret.offset = offset;
         ret.offset_size = offset_size;
         ret.index = index;
         ret.index_size = index_size;
         ret.tag = tag;
         ret.tag_size = tag_size;
-        // ret.offset = bitset<32> (addr.to_string().substring(32-log2(L1.block_size),32));
-        // ret.index = bitset<32> (addr.to_string().substring(32-log2(L1.block_size)-log2(L1.num_set),32-log2(L1.block_size));
-        // ret.tag = bitset<32> (addr.to_string().substring(0, 32-log2(L1.block_size)-log2(L1.num_set)));
         return ret;
     }
 
     retDecode decodeL2 (bitset<32> addr) {
         retDecode ret;
         int offset_size = log2(L2.block_size);
-        int index_size = 32-log2(L2.block_size)-log2(L2.num_set);
-        int tag_size = 32-log2(L2.block_size)-log2(L2.num_set);
-        unsigned long offset = (bitset<32>(split_str(32-log2(L2.block_size),32,addr.to_string()))).to_ulong();
-        unsigned long index = (bitset<32>(split_str(32-log2(L2.block_size)-log2(L2.num_set),32-log2(L2.block_size),addr.to_string()))).to_ulong();
-        unsigned long tag = (bitset<32>(split_str(0,32-log2(L2.block_size)-log2(L2.num_set),addr.to_string()))).to_ulong();
+        int index_size = log2(L2.num_set);
+        int tag_size = 32 - offset_size - index_size;
+        unsigned long offset = (bitset<32>(split_str(32-offset_size,32,addr.to_string()))).to_ulong();
+        unsigned long index = (bitset<32>(split_str(tag_size,32-offset_size,addr.to_string()))).to_ulong();
+        unsigned long tag = (bitset<32>(split_str(0,tag_size,addr.to_string()))).to_ulong();
         ret.offset = offset;
         ret.offset_size = offset_size;
         ret.index = index;
@@ -146,10 +142,10 @@ public:
 
     int writeL1(bitset<32> addr){
         retDecode ret = decodeL1(addr);
-        int index = ret.index;
-        unsigned long tag = ret.tag;      
+        unsigned long index = ret.index;    //index is the set number
+        unsigned long tag = ret.tag;        //tag is used to verify the block with addr
         for (int i=0; i<L1.num_block; i++) {
-            if (L1.myset[index].myblock[i].tag == tag && L1.myset[index].myblock[i].valid) {
+            if (L1.myset[index].myblock[i].tag == tag && L1.myset[index].myblock[i].valid) {       //check each block in that set
                 L1.myset[index].myblock[i].dirty = true;           
                 return WH;     
             }
@@ -160,10 +156,10 @@ public:
 
     int writeL2(bitset<32> addr){  
         retDecode ret = decodeL2(addr);
-        int index = ret.index;
-        unsigned long tag = ret.tag;
+        unsigned long index = ret.index;    //index is the set number
+        unsigned long tag = ret.tag;        //tag is used to verify the block with addr
         for (int i=0; i<L2.num_block; i++) {
-            if (L2.myset[index].myblock[i].tag == tag && L2.myset[index].myblock[i].valid) {
+            if (L2.myset[index].myblock[i].tag == tag && L2.myset[index].myblock[i].valid) {        //check each block in that set
                 L2.myset[index].myblock[i].dirty = true; 
                 return WH;      
             }
@@ -173,8 +169,8 @@ public:
 
     int readL1(bitset<32> addr){
         retDecode ret = decodeL1(addr);
-        int index = ret.index;
-        unsigned long tag = ret.tag;
+        unsigned long index = ret.index;    //index is the set number
+        unsigned long tag = ret.tag;        //tag is used to verify the block with addr
         for (int i=0; i<L1.num_block; i++) {
             if (L1.myset[index].myblock[i].tag == tag && L1.myset[index].myblock[i].valid) {        
                 return RH;  
@@ -186,18 +182,24 @@ public:
     retMem readL2(bitset<32> addr){
         retMem ret;
         retDecode retDec = decodeL2(addr);
-        int index = retDec.index;
+        unsigned long index = retDec.index;     //index is the set number
         unsigned long tag = retDec.tag;
         for (int i=0; i<L2.num_block; i++) {
-            if (L2.myset[index].myblock[i].tag == tag && L2.myset[index].myblock[i].valid) {                
-                //move the block from L2 to L1  
+            if (L2.myset[index].myblock[i].tag == tag && L2.myset[index].myblock[i].valid) {      
+                // Read Hit          
+                //delete block from L2
                 bool dirty_temp = L2.myset[index].myblock[i].dirty;
+                bitset<32> addr_temp = L2.myset[index].myblock[i].addr;
                 L2.myset[index].myblock[i].valid = false;   
                 L2.myset[index].myblock[i].dirty = false;
-                ret.memState = addL1(addr, dirty_temp);                
+                L2.myset[index].myblock[i].addr = 0;
+                L2.myset[index].myblock[i].tag = 0;
+        
+                //move the block from L2 to L1  
+                ret.memState = addL1(addr_temp, dirty_temp);                
                 ret.accessState = RH;   
                 
-                //return
+                //return values for both L2 state and memState
                 return ret;  
             }
         }
@@ -209,7 +211,7 @@ public:
 
     int addL1(bitset<32> addr, bool dirt) {
         retDecode retDec = decodeL1(addr);
-        int index = retDec.index;
+        unsigned long index = retDec.index;
         unsigned long tag = retDec.tag;
         for (int i=0; i<L1.num_block; i++) {
             if(!L1.myset[index].myblock[i].valid) { //if there's an empty spot
@@ -221,12 +223,15 @@ public:
             }
         }
         //if there's no empty spot -> evict
-        //push block to L2
+        //push a block to L2 with ROUND-ROBIN
         int check_WB;
         bool dirty_temp = L1.myset[index].myblock[L1.myset[index].counter].dirty;
+        bitset<32> addr_temp = L1.myset[index].myblock[L1.myset[index].counter].addr;
         L1.myset[index].myblock[L1.myset[index].counter].valid = false;
-        L1.myset[index].myblock[L1.myset[index].counter].dirty = false;        
-        check_WB = addL2(L1.myset[index].myblock[L1.myset[index].counter].addr, dirty_temp);
+        L1.myset[index].myblock[L1.myset[index].counter].dirty = false;    
+        L1.myset[index].myblock[L1.myset[index].counter].addr = 0;  
+        L1.myset[index].myblock[L1.myset[index].counter].tag = 0;    
+        check_WB = addL2(addr_temp, dirty_temp);
         
 
         //replace block in L1 to new addr
@@ -235,7 +240,7 @@ public:
         L1.myset[index].myblock[L1.myset[index].counter].dirty = dirt;
         L1.myset[index].myblock[L1.myset[index].counter].valid = true;
 
-        //increment counter
+        //increment counter 
         L1.myset[index].counter++;
         if (L1.myset[index].counter == L1.num_block) {
             L1.myset[index].counter = 0;
@@ -246,7 +251,7 @@ public:
 
     int addL2(bitset<32> addr, bool dirt) {
         retDecode retDec = decodeL2(addr);
-        int index = retDec.index;
+        unsigned long index = retDec.index;
         unsigned long tag = retDec.tag;
         for (int i=0; i<L2.num_block; i++) {
             if(!L2.myset[index].myblock[i].valid) { //if there's an empty spot
