@@ -36,6 +36,17 @@ bitset<32>signExtend(bitset<16>bit){
   bitset<32>ret (res);
   return ret;
 }
+bitset<32>BranchAddrCompute(bitset<16>bit){
+    string extended = bit.to_string();
+    string temp = "";
+    char sign_bit = extended[0];
+    while(temp.length()!=14){
+        temp+=sign_bit;
+    }
+    string res = temp+extended+"00";
+    bitset<32> ret (res);
+    return ret;
+}
 class RF
 {
   public:
@@ -325,11 +336,7 @@ int main()
       if (opcode.to_ulong() == 4) {                // beq***
         myRF.ReadWrite(rs, rt, 0, 0, 0);
         if (myRF.ReadData1.to_ulong() == myRF.ReadData2.to_ulong()) {     //if equal branch to PC + 4 + BranchAddress
-          BranchAddr = signExtend(immediate);
-          string temp = BranchAddr.to_string();
-          temp[30] = '0';
-          temp[31] = '0';
-          BranchAddr = bitset<32>(temp);
+          BranchAddr = BranchAddrCompute(immediate);
           PC = bitset<32>(PC.to_ulong() + 4 + BranchAddr.to_ulong());  
         }
         else {                            // if not equal go to PC + 4
