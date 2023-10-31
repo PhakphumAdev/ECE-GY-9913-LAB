@@ -94,7 +94,7 @@ public:
         if (num_way1 == 0){
             //Fully Associative
             L1.associative = fullyAssociative;
-            L1.numset = 1;
+            L1.num_set = 1;
             L1.num_block = (cache_size1 * 1024) / (block_size1);
             L1.block_size = block_size1;           
         }
@@ -115,7 +115,7 @@ public:
         if (num_way2 == 0){
             //Fully Associative
             L2.associative = fullyAssociative;
-            L2.numset = 1;
+            L2.num_set = 1;
             L2.num_block = (cache_size2 * 1024) / (block_size2);
             L2.block_size = block_size2;           
         }
@@ -167,14 +167,16 @@ public:
     }
 
     int writeL1(bitset<32> addr){
+        unsigned long index;
+        unsigned long tag;
         if (L1.associative == fullyAssociative) {   
-            unsigned long index = 0;            //use only one set0
-            unsigned long tag = addr.to_ulong() //tag is the addr in this case            
+            index = 0;            //use only one set0
+            tag = addr.to_ulong(); //tag is the addr in this case            
         }
-        if (L1.associative == setAssociative) {
+        else if (L1.associative == setAssociative) {
             retDecode ret = decodeL1(addr);
-            unsigned long index = ret.index;    //index is the set number
-            unsigned long tag = ret.tag;        //tag is used to verify the block with addr
+            index = ret.index;    //index is the set number
+            tag = ret.tag;        //tag is used to verify the block with addr
         }        
         for (int i=0; i<L1.num_block; i++) {
             if (L1.myset[index].myblock[i].tag == tag && L1.myset[index].myblock[i].valid) {       //check each block in that set
@@ -188,14 +190,16 @@ public:
     
 
     int writeL2(bitset<32> addr){  
+        unsigned long index;
+        unsigned long tag;
         if (L2.associative == fullyAssociative) {
-            unsigned long index = 0;            //use only one set0
-            unsigned long tag = addr.to_ulong() //tag is the addr in this case            
+            index = 0;            //use only one set0
+            tag = addr.to_ulong(); //tag is the addr in this case            
         }
-        if (L2.associative == setAssociative) {
+        else if (L2.associative == setAssociative) {
             retDecode ret = decodeL2(addr);
-            unsigned long index = ret.index;    //index is the set number
-            unsigned long tag = ret.tag;        //tag is used to verify the block with addr
+            index = ret.index;    //index is the set number
+            tag = ret.tag;        //tag is used to verify the block with addr
         }  
         for (int i=0; i<L2.num_block; i++) {
             if (L2.myset[index].myblock[i].tag == tag && L2.myset[index].myblock[i].valid) {        //check each block in that set
@@ -207,14 +211,16 @@ public:
     }
 
     int readL1(bitset<32> addr){
+        unsigned long index;
+        unsigned long tag;
         if (L1.associative == fullyAssociative) {   
-            unsigned long index = 0;            //use only one set0
-            unsigned long tag = addr.to_ulong() //tag is the addr in this case            
+            index = 0;            //use only one set0
+            tag = addr.to_ulong(); //tag is the addr in this case            
         }
-        if (L1.associative == setAssociative) {
+        else if (L1.associative == setAssociative) {
             retDecode ret = decodeL1(addr);
-            unsigned long index = ret.index;    //index is the set number
-            unsigned long tag = ret.tag;        //tag is used to verify the block with addr
+            index = ret.index;    //index is the set number
+            tag = ret.tag;        //tag is used to verify the block with addr
         }   
         for (int i=0; i<L1.num_block; i++) {
             if (L1.myset[index].myblock[i].tag == tag && L1.myset[index].myblock[i].valid) {        
@@ -225,15 +231,18 @@ public:
     }
 
     retMem readL2(bitset<32> addr){
+        unsigned long index;
+        unsigned long tag;
         if (L2.associative == fullyAssociative) {
-            unsigned long index = 0;            //use only one set0
-            unsigned long tag = addr.to_ulong() //tag is the addr in this case            
+            index = 0;            //use only one set0
+            tag = addr.to_ulong(); //tag is the addr in this case            
         }
-        if (L2.associative == setAssociative) {
+        else if (L2.associative == setAssociative) {
             retDecode ret = decodeL2(addr);
-            unsigned long index = ret.index;    //index is the set number
-            unsigned long tag = ret.tag;        //tag is used to verify the block with addr
+            index = ret.index;    //index is the set number
+            tag = ret.tag;        //tag is used to verify the block with addr
         }  
+        retMem retFunc;
         for (int i=0; i<L2.num_block; i++) {
             if (L2.myset[index].myblock[i].tag == tag && L2.myset[index].myblock[i].valid) {      
                 // Read Hit          
@@ -246,28 +255,30 @@ public:
                 L2.myset[index].myblock[i].tag = 0;
         
                 //move the block from L2 to L1  
-                ret.memState = addL1(addr_temp, dirty_temp);                
-                ret.accessState = RH;   
+                retFunc.memState = addL1(addr_temp, dirty_temp);                
+                retFunc.accessState = RH;   
                 
                 //return values for both L2 state and memState
-                return ret;  
+                return retFunc;  
             }
         }
         //read miss -> fectch from memmory to L1
-        ret.memState = addL1(addr, false);
-        ret.accessState = RM;
-        return ret;
+        retFunc.memState = addL1(addr, false);
+        retFunc.accessState = RM;
+        return retFunc;
     }
 
     int addL1(bitset<32> addr, bool dirt) {
+        unsigned long index;
+        unsigned long tag;
         if (L1.associative == fullyAssociative) {   
-            unsigned long index = 0;            //use only one set0
-            unsigned long tag = addr.to_ulong() //tag is the addr in this case            
+            index = 0;            //use only one set0
+            tag = addr.to_ulong(); //tag is the addr in this case            
         }
         if (L1.associative == setAssociative) {
             retDecode ret = decodeL1(addr);
-            unsigned long index = ret.index;    //index is the set number
-            unsigned long tag = ret.tag;        //tag is used to verify the block with addr
+            index = ret.index;    //index is the set number
+            tag = ret.tag;        //tag is used to verify the block with addr
         }   
         for (int i=0; i<L1.num_block; i++) {
             if(!L1.myset[index].myblock[i].valid) { //if there's an empty spot
@@ -306,14 +317,16 @@ public:
     }
 
     int addL2(bitset<32> addr, bool dirt) {
+        unsigned long index;
+        unsigned long tag;
         if (L2.associative == fullyAssociative) {
-            unsigned long index = 0;            //use only one set0
-            unsigned long tag = addr.to_ulong() //tag is the addr in this case            
+            index = 0;            //use only one set0
+            tag = addr.to_ulong(); //tag is the addr in this case            
         }
-        if (L2.associative == setAssociative) {
+        else if (L2.associative == setAssociative) {
             retDecode ret = decodeL2(addr);
-            unsigned long index = ret.index;    //index is the set number
-            unsigned long tag = ret.tag;        //tag is used to verify the block with addr
+            index = ret.index;    //index is the set number
+            tag = ret.tag;        //tag is used to verify the block with addr
         }  
         for (int i=0; i<L2.num_block; i++) {
             if(!L2.myset[index].myblock[i].valid) { //if there's an empty spot
