@@ -473,15 +473,25 @@ int main()
                         }                        
                     }
                 }    
-                // check for stall lw -> add or lw -> sub
-                if (state.EX.rd_mem == 1  && !state.EX.nop  && (state.EX.Wrt_reg_addr == newState.EX.Rs||(state.EX.Wrt_reg_addr == newState.EX.Rt && !newState.EX.is_I_type))) {
+                //check for stall lw -> add or lw -> sub
+                // if (state.EX.rd_mem == 1  && !state.EX.nop  && (state.EX.Wrt_reg_addr == newState.EX.Rs||(state.EX.Wrt_reg_addr == newState.EX.Rt && !newState.EX.is_I_type))) {
+                //     newState.EX.nop = 1;
+                //     newState.IF = state.IF;
+                //     newState.ID = state.ID;
+                //     state = newState;
+                //     //cout << "stall\n";
+                //     cycle++;
+                //     continue;
+                // }
+                if (state.EX.rd_mem == 1 && !state.EX.nop && (state.EX.Wrt_reg_addr == newState.EX.Rs || state.EX.Wrt_reg_addr == newState.EX.Rt)) {
                     newState.EX.nop = 1;
+
                     newState.IF = state.IF;
                     newState.ID = state.ID;
-                    state = newState;
-                    //cout << "stall\n";
+
+                    state = newState; 
                     cycle++;
-                    continue;
+                    continue; // Skip to the next cycle without updating the state
                 }
 
             }
