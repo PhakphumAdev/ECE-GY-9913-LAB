@@ -40,6 +40,12 @@ class PhyMem
       /**TODO: implement!
        * Returns the value stored in the physical address 
        */
+       string first_byte = DMem[Address.to_ulong()];
+       string second_byte = DMem[Address.to_ulong() +1];
+       string third_byte = DMem[Address.to_ulong() +2];
+       string fourth_byte = DMem[Address.to_ulong() +3];
+
+       readdata = bitset<32> (first_byte + second_byte + third_byte + fourth_byte);
 
       return readdata;     
     }              
