@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
           //bitset<1> validOuter = 0;
 
           // Access the outer page table 
-          bitset<12> accessOuter = outerPTB.to_ulong() + (PTBR.to_ulong() << 2) ; //shift value by 2 
+          bitset<12> accessOuter = (outerPTB.to_ulong() << 2) + PTBR.to_ulong() ; //shift value by 2 
           bitset<32> returnOuter = myPhyMem.outputMemValue(accessOuter);
 
           // If outer page table valid bit is 1, access the inner page table 
