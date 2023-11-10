@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
           //Step 1. Decode the virtual address & default values
           bitset<4> outerPTB(slice(line, 0, 4));
           bitset<4> innerPTB(slice(line, 4, 8));
-          bitset<6> offset(slice(line, 9, 14));
+          bitset<6> offset(slice(line, 8, 14));
           bitset<12> physicalAddress = 0;
           bitset<32> memoryValue = 0;
           bitset<1> validInner = 0;
