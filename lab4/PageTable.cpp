@@ -11,6 +11,14 @@ using namespace std;
 
 #define MemSize (65536)
 
+string slice(string input, int start,int end){
+  string ret="";
+  for(int i=start;i<end;i++){
+    ret+=input[i];
+  }
+  return ret;
+}
+
 class PhyMem    
 {
   public:
@@ -85,25 +93,28 @@ int main(int argc, char *argv[])
         {
         //TODO: Implement!
           //Step 1. Decode the virtual address
-          bitset<4> outerPTB = slice(line, 0, 4);
-          bitset<4> innerPTB = slice(line, 4, 8);
-          bitset<6> offset = slice(line, 9, 14);
+          bitset<4> outerPTB(slice(line, 0, 4));
+          bitset<4> innerPTB(slice(line, 4, 8));
+          bitset<6> offset(slice(line, 9, 14));
+          bitset<12> physicalAddress = 0;
+          bitset<32> memoryValue = 0;
 
           // Access the outer page table 
-          bitset<12> accessOuter = (outerPTB << 00).to_ulong() + PTBR.to_ulong(); //shift value by 2 added by PTBR
+          bitset<12> accessOuter = (outerPTB << 2).to_ulong() + PTBR.to_ulong(); //shift value by 2 added by PTBR
           bitset<32> returnOuter = myPhyMem.outputMemValue(accessOuter);
 
           // If outer page table valid bit is 1, access the inner page table 
-          bitset<1> validOuter = slice(returnOuter, 31, 32);
-          if (validOuter) {
-            bitset<6> outerFrame = slice(returnOuter, 0, 6);
-            bitset<12> accessInner = (innerPTB << 00).to_ulong() + outerFrame;  //shift value by 2 added by outer frame number
+          bitset<1> validOuter(slice(returnOuter.to_string(), 31, 32));
+          bitset<1> validInner = 0;
+          if (validOuter.to_ulong()) {
+            bitset<6> outerFrame(slice(returnOuter.to_string(), 0, 6));
+            bitset<12> accessInner = (innerPTB << 2).to_ulong() + outerFrame.to_ulong();  //shift value by 2 added by outer frame number
             bitset<32> returnInner = myPhyMem.outputMemValue(accessInner);
 
             // Check if inner page table valid bit is 1, return the physical address and Mem value
-            bitset<1> validInner = slice(returnInner, 31, 32);
-            if (validInner) {
-              bitset<12> physicalAddress = slice(returnInner, 0, 12);
+            bitset<1> validInner(slice(returnInner.to_string(), 31, 32));
+            if (validInner.to_ulong()) {
+              bitset<12> physicalAddress(slice(returnInner.to_string(), 0, 12));
               bitset<32> memoryValue = myPhyMem.outputMemValue(physicalAddress);
             }
             // If inner page table is not valid, Memory doesn't exist
@@ -115,10 +126,10 @@ int main(int argc, char *argv[])
 
           //Return valid bit in outer and inner page table, physical address, and value stored in the physical memory.
           // Each line in the output file for example should be: 1, 0, 0x000, 0x00000000
-          traceout  << validOuter.to_ulong() << ", " 
+          tracesout << validOuter.to_ulong() << ", " 
                     << validInner.to_ulong() << ", "
-                    << "0x" << hex << physicalAddress.to_ulong() << ", "
-                    << "0x" << hex <<memoryValue.to_ulong();
+                    << "0x" << setfill('0') << setw(3) << hex << physicalAddress.to_ulong() << ", "
+                    << "0x" <<setfill('0') << setw(8) << hex << memoryValue.to_ulong() <<'\n';
 
         }
         traces.close();
