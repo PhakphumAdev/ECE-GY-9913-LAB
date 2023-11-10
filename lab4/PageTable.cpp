@@ -109,9 +109,9 @@ int main(int argc, char *argv[])
           validOuter=bitset<1>(slice(returnOuter.to_string(), 31, 32));
           
           if (validOuter.to_ulong()) {
-            bitset<12> beginInner(slice(returnOuter.to_string(), 0, 12));
-              //bitset<6> outerFrame(slice(returnOuter.to_string(), 0, 6));
-            bitset<12> accessInner = (innerPTB.to_ulong() << 2) + beginInner.to_ulong();
+              //bitset<12> beginInner(slice(returnOuter.to_string(), 0, 12));
+            bitset<6> outerFrame(slice(returnOuter.to_string(), 0, 6));
+            bitset<12> accessInner = (innerPTB.to_ulong() << 2) + outerFrame.to_ulong();
             bitset<32> returnInner = myPhyMem.outputMemValue(accessInner);
 
             // Check if inner page table valid bit is 1, return the physical address and Mem value
