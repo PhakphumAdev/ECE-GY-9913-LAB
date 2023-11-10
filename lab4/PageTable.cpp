@@ -92,12 +92,14 @@ int main(int argc, char *argv[])
         while (getline(traces, line))
         {
         //TODO: Implement!
-          //Step 1. Decode the virtual address
+          //Step 1. Decode the virtual address & default values
           bitset<4> outerPTB(slice(line, 0, 4));
           bitset<4> innerPTB(slice(line, 4, 8));
           bitset<6> offset(slice(line, 9, 14));
           bitset<12> physicalAddress = 0;
           bitset<32> memoryValue = 0;
+          bitset<1> validInner = 0;
+          bitset<1> validOuter = 0;
 
           // Access the outer page table 
           bitset<12> accessOuter = (outerPTB << 2).to_ulong() + PTBR.to_ulong(); //shift value by 2 added by PTBR
@@ -105,23 +107,18 @@ int main(int argc, char *argv[])
 
           // If outer page table valid bit is 1, access the inner page table 
           bitset<1> validOuter(slice(returnOuter.to_string(), 31, 32));
-          bitset<1> validInner = 0;
+          
           if (validOuter.to_ulong()) {
             bitset<6> outerFrame(slice(returnOuter.to_string(), 0, 6));
-            bitset<12> accessInner = (innerPTB << 2).to_ulong() + outerFrame.to_ulong();  //shift value by 2 added by outer frame number
+            bitset<12> accessInner = (innerPTB.to_ulong() + outerFrame.to_ulong()) << 2;  //shift value by 2 
             bitset<32> returnInner = myPhyMem.outputMemValue(accessInner);
 
             // Check if inner page table valid bit is 1, return the physical address and Mem value
             bitset<1> validInner(slice(returnInner.to_string(), 31, 32));
-            if (validInner.to_ulong()) {
+            if (validInner.to_ulong()) 
               bitset<12> physicalAddress(slice(returnInner.to_string(), 0, 12));
               bitset<32> memoryValue = myPhyMem.outputMemValue(physicalAddress);
-            }
-            // If inner page table is not valid, Memory doesn't exist
-            else {
-              bitset<12> physicalAddress = 0;
-              bitset<32> memoryValue = 0;
-            }          
+            }         
           }
 
           //Return valid bit in outer and inner page table, physical address, and value stored in the physical memory.
