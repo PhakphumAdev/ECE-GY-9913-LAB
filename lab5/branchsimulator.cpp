@@ -5,7 +5,13 @@
 #include <bitset>
 
 using namespace std;
-
+string slice(string input, int start,int end){
+  string ret="";
+  for(int i=start;i<end;i++){
+    ret+=input[i];
+  }
+  return ret;
+}
 int main (int argc, char** argv) {
 	ifstream config;
 	config.open(argv[1]);
@@ -27,48 +33,60 @@ int main (int argc, char** argv) {
 	// TODO: Implement a two-level branch predictor 
 
 	/*--------- Create PHT -----------*/
-	bitset<2> pht[pow(2,m)];
-	for i in pht:
+	int pht_size = int(pow(2,m));
+	vector<bitset<2> > pht(pht_size);
+	for(int i=0;i<pht_size;i++){
 		pht[i] = bitset<2> ("10");			// given that PHT should be initialized at 10 (weak taken)
-
+	}
 
 	/*---------- Create BHT ----------*/
-	bitset<w> bht[pow(2,h)];				// BHT is given to be 2^h array with w bit
-	for i in bht:
-		bht[i] = bitset<w> ("0");			// given that BHT is initiallized to be zero
-
-
+	int bht_size = int(pow(2,h)); // BHT is given to be 2^h array with w bit
+	vector<bitset<32> > bht(bht_size);
+	for(int i=0;i<bht_size;i++){
+		bht[i] = bitset<32>("0");  	// given that BHT is initiallized to be zero
+ 	}
 	/*----------- Read input ------------*/
-	while (!trace.eof()) {
-		bitset<32> currentPC = trace[0].to_ulong();		//translate pc value on current input line
-		bitset<h> bhtIndex = slice(currentPC, 30-h, 30);	// get BHT index (h bits)
-		bitset<w> phtIndex = bitset<w> (slice(currentPC, 30-(m-w), 30)).to_string() + bht[bhtIndex].to_string());	//concat of (m-w)bits from PC with w bits from BHT
+	unsigned long long addr;
+	int taken;
+	while (trace >> hex >> addr >> taken) {
+		bitset<32> currentPC(addr);		//translate pc value on current input line
+		bitset<32> bhtIndex(slice(currentPC.to_string(), 30-h, 30));	// get BHT index (h bits)
+		bitset<32> phtIndex((slice(currentPC.to_string(), 30-(m-w), 30))+ bht[bhtIndex.to_ulong()].to_string());	//concat of (m-w)bits from PC with w bits from BHT
 
 		//read PHT 
-		bitset<2> result = pht[phtIndex];
-		if (result.to_string() == "11" or result.to_string() == "10"):	//weak taken and strong taken
+		bitset<2> result = pht[phtIndex.to_ulong()];
+		if (result.to_string() == "11" || result.to_string() == "10"){	//weak taken and strong taken
 			out << 1 << endl; // predict not taken
-		elif (result.to_string() == "01" or result.to_string() == "00"):	//weak not taken and strong not taken
+		}
+		else if(result.to_string() == "01" || result.to_string() == "00"){	//weak not taken and strong not taken
 			out << 0 << endl; // predict not taken
-
+		}
 		//update the PHT from the actual branch action
-		if (trace[1] == 1):	// actual brance taken
-			if (result.to_string() == "10"):	//weak taken go to strong taken
-				pht[phtIndex] = bitset<2> ("11");
-			if (result.to_string() == "01"):	//weak not taken go to weak taken
-				pht[phtIndex] = bitset<2> ("10");
-			if (result.to_string() == "00"):	//strong not taken go to weak not taken
-				pht[phtIndex] = bitset<2> ("01");
-		if (trace[1] == 0):	// actual brance not taken
-			if (result.to_string() == "11"):	//strong taken go to weak taken
-				pht[phtIndex] = bitset<2> ("10");
-			if (result.to_string() == "10"):	//weak taken go to weak not taken
-				pht[phtIndex] = bitset<2> ("01");
-			if (result.to_string() == "01"):	//weak not taken go to strong not taken
-				pht[phtIndex] = bitset<2> ("00");
-
+		if (taken == 1){	// actual brance taken
+			if (result.to_string() == "10"){	//weak taken go to strong taken
+				pht[phtIndex.to_ulong()] = bitset<2> ("11");
+			}
+			if (result.to_string() == "01"){	//weak not taken go to weak taken
+				pht[phtIndex.to_ulong()] = bitset<2> ("10");
+			}
+			if (result.to_string() == "00"){	//strong not taken go to weak not taken
+				pht[phtIndex.to_ulong()] = bitset<2> ("01");
+			}
+		}
+		if (taken== 0){	// actual brance not taken
+			if (result.to_string() == "11"){	//strong taken go to weak taken
+				pht[phtIndex.to_ulong()] = bitset<2> ("10");
+			}
+			if (result.to_string() == "10"){	//weak taken go to weak not taken
+				pht[phtIndex.to_ulong()] = bitset<2> ("01");
+			}
+			if (result.to_string() == "01"){	//weak not taken go to strong not taken
+				pht[phtIndex.to_ulong()] = bitset<2> ("00");
+			}
+		}
 		//update the BHT from the actual branch action
-		bht[bhtIndex] = bht[bhtIndex] << 1 | trace[1];			//bht left-shifting by 1 and placing the branch action in the LSB		
+		bitset<32>takenBitset(taken);
+		bht[bhtIndex.to_ulong()] = bht[bhtIndex.to_ulong()] << 1 | takenBitset;			//bht left-shifting by 1 and placing the branch action in the LSB		
 	}
 	 
 	trace.close();	
