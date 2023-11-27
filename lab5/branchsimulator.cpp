@@ -5,13 +5,15 @@
 #include <bitset>
 
 using namespace std;
-string slice(string input, int start,int end){
+
+string slice(string input, int start,int end) {
   string ret="";
   for(int i=start;i<end;i++){
     ret+=input[i];
   }
   return ret;
 }
+
 int main (int argc, char** argv) {
 	ifstream config;
 	config.open(argv[1]);
@@ -45,13 +47,14 @@ int main (int argc, char** argv) {
 	for(int i=0;i<bht_size;i++){
 		bht[i] = bitset<32>("0");  	// given that BHT is initiallized to be zero
  	}
+	
 	/*----------- Read input ------------*/
 	unsigned long long addr;
 	int taken;
 	while (trace >> hex >> addr >> taken) {
 		bitset<32> currentPC(addr);		//translate pc value on current input line
 		bitset<32> bhtIndex(slice(currentPC.to_string(), 30-h, 30));	// get BHT index (h bits)
-		bitset<32> phtIndex((slice(currentPC.to_string(), 30-(m-w), 30))+ bht[bhtIndex.to_ulong()].to_string());	//concat of (m-w)bits from PC with w bits from BHT
+		bitset<32> phtIndex((slice(currentPC.to_string(), 30-(m-w), 30))+ slice(bht[bhtIndex.to_ulong()].to_string(), 32-w, 32));	//concat of (m-w)bits from PC with w bits from BHT
 
 		//read PHT 
 		bitset<2> result = pht[phtIndex.to_ulong()];
@@ -61,6 +64,7 @@ int main (int argc, char** argv) {
 		else if(result.to_string() == "01" || result.to_string() == "00"){	//weak not taken and strong not taken
 			out << 0 << endl; // predict not taken
 		}
+
 		//update the PHT from the actual branch action
 		if (taken == 1){	// actual brance taken
 			if (result.to_string() == "10"){	//weak taken go to strong taken
