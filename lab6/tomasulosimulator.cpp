@@ -53,7 +53,11 @@ struct RegisterResultStatus
 };
 
 /*********************************** ↓↓↓ Todo: Implement by you ↓↓↓ ******************************************/
-struct Instruction;
+struct Instruction{
+	Operation op;
+	string rd,rs,rt;
+	int imm;
+};
 
 class RegisterResultStatuses
 {
