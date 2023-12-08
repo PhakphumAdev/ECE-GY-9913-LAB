@@ -87,11 +87,18 @@ private:
 struct ReservationStation
 {
 	// ...
+	string name;
+	bool busy;
+	Operation op;
+	string vj,vk;
+	string qj,qk;
+	int remainCycle;
 };
 class ReservationStations
 {
 public:
 	// ...
+
 private:
 	vector<ReservationStation> _stations;
 };
