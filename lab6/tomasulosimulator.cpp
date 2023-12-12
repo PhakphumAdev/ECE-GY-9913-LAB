@@ -55,7 +55,7 @@ struct RegisterResultStatus
 /*********************************** ↓↓↓ Todo: Implement by you ↓↓↓ ******************************************/
 struct Instruction{
 	Operation op;
-	string rd,rs,rt;
+	string dest,src1,src2;
 	int imm;
 };
 
@@ -133,7 +133,7 @@ void simulateTomasulo()
 		// ...
 
 		// At the end of this cycle, we need this function to print all registers status for grading
-		PrintRegisterResultStatus4Grade(outputtracename, registerResultStatus, thiscycle);
+		// PrintRegisterResultStatus4Grade(outputtracename, registerResultStatus, thiscycle);
 
 		++thiscycle;
 
@@ -204,7 +204,40 @@ int main(int argc, char **argv)
 
 	// Read instructions from a file (replace 'instructions.txt' with your file name)
 	// ...
-
+	std::ifstream trace(inputtracename);
+	vector<Instruction>instruction;
+	string op,dest,src1,src2;
+	while(trace >> op >> dest >> src1 >> src2){
+		cout << op << ' ' << dest << ' ' << src1 << ' ' << src2 << "\n";
+			Instruction dummy;
+			dummy.imm = -1;
+			dummy.dest = dest;
+			if(op=="LOAD"){
+				dummy.op = LOAD;
+				dummy.imm = stoi(src1);
+			}
+			if(op=="STORE"){
+				dummy.op = STORE;
+				dummy.imm = stoi(src1);
+			}
+			if(op=="ADD"){
+				dummy.op = ADD;
+			}
+			if(op=="SUB"){
+				dummy.op = SUB;
+			}
+			if(op=="MULT"){
+				dummy.op = MULT;
+			}
+			if(op=="DIV"){
+				dummy.op = DIV;
+			}
+			if(dummy.imm==-1){
+				dummy.src1 = src1;
+				dummy.src2 = src2;
+			}
+			instruction.push_back(dummy);
+	}
 	// Initialize the register result status
 	// RegisterResultStatuses registerResultStatus();
 	// ...
