@@ -97,6 +97,9 @@ struct ReservationStation
 	string vj,vk;
 	string qj,qk;
 	int remainCycle;
+	Instruction *instruction;
+
+	ReservationStation() : busy(false), remainCycle(0),instruction(nullptr) {}
 };
 class ReservationStations
 {
