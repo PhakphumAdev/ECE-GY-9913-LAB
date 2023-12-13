@@ -244,6 +244,10 @@ public:
 					else{
 						_stations[i].qk = src2.ReservationStationName;
 					}
+					if(!src1.dataReady || !src2.dataReady){
+						//has to wait
+						_stations[i].remainCycle++;
+					}
 				}
 				else{
 					// LOAD and STORE always use immi
@@ -367,7 +371,7 @@ void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStatio
 		reservationStations.updateTable(cdb,registerStatuses,thiscycle);
 		// Issue new instruction in each cycle
 		// ...
-		if(reservationStations.isFreeStationAvailable(instructions[numInstruction].op)){
+		if(reservationStations.isFreeStationAvailable(instructions[numInstruction].op) && numInstruction<instructions.size()){
 			instructions[numInstruction].status.cycleIssued = thiscycle;
 			instructionStatus[numInstruction].cycleIssued = thiscycle;
 			reservationStations.addInstruction(instructions[numInstruction],thiscycle,registerStatuses,numInstruction);
