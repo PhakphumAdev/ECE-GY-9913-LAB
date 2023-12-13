@@ -121,15 +121,16 @@ private:
 struct ReservationStation
 {
 	// ...
-	string name;
+	Operation name;
+	int stationNumber;
 	bool busy;
 	Operation op;
 	int vj,vk;
-	int qj,qk;
+	string qj,qk;
 	int remainCycle;
 	Instruction *instruction;
 
-	ReservationStation() : busy(false), remainCycle(0),instruction(nullptr) {}
+	ReservationStation() : busy(false),qj(""),qk(""), remainCycle(0),instruction(nullptr) {}
 };
 class ReservationStations
 {
@@ -137,34 +138,44 @@ public:
 	// ...
 	ReservationStations(int sizeLoad,int sizeStore, int sizeAdd, int sizeMult) {
         for(int i=0;i<sizeLoad;i++){
-			string load = "Load";
-			load+=to_string(i);	
 			ReservationStation newOne = ReservationStation();
-			newOne.name = load;
+			newOne.name = LOAD;
+			newOne.stationNumber = i;
 			_stations.push_back(newOne);
 		}
 		for(int i=0;i<sizeStore;i++){
-			string store="Store";
-			store+=to_string(i);
 			ReservationStation newOne = ReservationStation();
-			newOne.name = store;
+			newOne.name = STORE;
+			newOne.stationNumber = i;
 			_stations.push_back(newOne);
 		}
 		for(int i=0;i<sizeAdd;i++){
-			string add="Add";
-			add+=to_string(i);
 			ReservationStation newOne = ReservationStation();
-			newOne.name = add;
+			newOne.name = ADD;
+			newOne.stationNumber = i;
 			_stations.push_back(newOne);
 		}
 		for(int i=0;i<sizeMult;i++){
-			string mult="Mult";
-			mult+=to_string(i);
 			ReservationStation newOne = ReservationStation();
-			newOne.name = mult;
+			newOne.name = MULT;
+			newOne.stationNumber = i;
 			_stations.push_back(newOne);
 		}
     }
+	bool isFreeStationAvailable(Operation instruction) {
+		if(instruction==SUB){
+			instruction = ADD;
+		}
+		if(instruction==DIV){
+			instruction = MULT;
+		}
+		for(int i=0;i<_stations.size();i++){
+			if(_stations[i].name==instruction && !_stations[i].busy){
+				return true;
+			}
+		}
+		return false;
+	}
 
 private:
 	vector<ReservationStation> _stations;
@@ -193,8 +204,7 @@ void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStatio
 {
 
 	int thiscycle = 1; // start cycle: 1
-	// RegisterResultStatuses registerResultStatus(10);
-
+	int numInstruction = 0;
 	while (thiscycle < 100000000)
 	{
 
@@ -203,7 +213,7 @@ void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStatio
 
 		// Issue new instruction in each cycle
 		// ...
-
+		if(reservationStations.isFreeStationAvailable(instructions[numInstruction].op))
 		// At the end of this cycle, we need this function to print all registers status for grading
 		// PrintRegisterResultStatus4Grade(outputtracename, registerResultStatus, thiscycle);
 
