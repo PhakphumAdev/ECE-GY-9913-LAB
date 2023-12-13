@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <limits>
-
+using namespace std;
 using std::cout;
 using std::endl;
 using std::string;
@@ -63,11 +63,31 @@ class RegisterResultStatuses
 {
 public:
 	// ...
-	void addRegister(string name,bool status){
-		_registers.push_back({name,status});
-	}
+    RegisterResultStatuses(int numberOfRegisters) {
+        for (int i = 0; i < numberOfRegisters; ++i) {
+            _registers.push_back({"", false}); // Initialize with empty reservation station name and data not ready
+        }
+    }
 
+	void updateStatus(int registerNumber, string reservationStationName, bool dataReady) {
+        if (registerNumber >= 0 && registerNumber < _registers.size()) {
+            _registers[registerNumber].ReservationStationName = reservationStationName;
+            _registers[registerNumber].dataReady = dataReady;
+        }
+    }
 
+  	RegisterResultStatus getStatus(int registerNumber) const {
+        if (registerNumber >= 0 && registerNumber < _registers.size()) {
+            return _registers[registerNumber];
+        }
+        return {"", false}; // Return default status if register number is out of range
+    }
+
+	void resetStatuses() {
+        for (auto& reg : _registers) {
+            reg = {"", false};
+        }
+    }
 /*********************************** ↑↑↑ Todo: Implement by you ↑↑↑ ******************************************/
 	/*
 	Print all register result status. It is called by PrintRegisterResultStatus4Grade() for grading.
@@ -98,8 +118,8 @@ struct ReservationStation
 	string name;
 	bool busy;
 	Operation op;
-	string vj,vk;
-	string qj,qk;
+	int vj,vk;
+	int qj,qk;
 	int remainCycle;
 	Instruction *instruction;
 
@@ -109,6 +129,36 @@ class ReservationStations
 {
 public:
 	// ...
+	ReservationStations(int sizeLoad,int sizeStore, int sizeAdd, int sizeMult) {
+        for(int i=0;i<sizeLoad;i++){
+			string load = "Load";
+			load+=to_string(i);	
+			ReservationStation newOne = ReservationStation();
+			newOne.name = load;
+			_stations.push_back(newOne);
+		}
+		for(int i=0;i<sizeStore;i++){
+			string store="Store";
+			store+=to_string(i);
+			ReservationStation newOne = ReservationStation();
+			newOne.name = store;
+			_stations.push_back(newOne);
+		}
+		for(int i=0;i<sizeAdd;i++){
+			string add="Add";
+			add+=to_string(i);
+			ReservationStation newOne = ReservationStation();
+			newOne.name = add;
+			_stations.push_back(newOne);
+		}
+		for(int i=0;i<sizeMult;i++){
+			string mult="Mult";
+			mult+=to_string(i);
+			ReservationStation newOne = ReservationStation();
+			newOne.name = mult;
+			_stations.push_back(newOne);
+		}
+    }
 
 private:
 	vector<ReservationStation> _stations;
@@ -125,7 +175,7 @@ void simulateTomasulo()
 {
 
 	int thiscycle = 1; // start cycle: 1
-	RegisterResultStatuses registerResultStatus;
+	// RegisterResultStatuses registerResultStatus(10);
 
 	while (thiscycle < 100000000)
 	{
@@ -209,7 +259,7 @@ int main(int argc, char **argv)
 	// Read instructions from a file (replace 'instructions.txt' with your file name)
 	// ...
 	std::ifstream trace(inputtracename);
-	vector<Instruction>instruction;
+	vector<Instruction>instructions;
 	string op,dest,src1,src2;
 	while(trace >> op >> dest >> src1 >> src2){
 		// cout << op << ' ' << dest << ' ' << src1 << ' ' << src2 << "\n";
@@ -240,21 +290,17 @@ int main(int argc, char **argv)
 				dummy.src1 = src1;
 				dummy.src2 = src2;
 			}
-			instruction.push_back(dummy);
+			instructions.push_back(dummy);
 	}
 	// Initialize the register result status
 	// RegisterResultStatuses registerResultStatus();
 	// ...
-	RegisterResultStatuses registerResultStatus;
-	for(int i=0;i<hardwareConfig.FRegSize;i++){
-		string L = "L";
-		L+=(i+'0');
-		registerResultStatus.addRegister(L,false);
-	}
+	RegisterResultStatuses registerResultStatus(hardwareConfig.FRegSize);
+
 	// Initialize the instruction status table
-	vector<InstructionStatus> instructionStatus(instruction.size());
+	vector<InstructionStatus> instructionStatus(instructions.size());
 	// ...
-	for(int i=0;i<instruction.size();i++){
+	for(int i=0;i<instructions.size();i++){
 		instructionStatus[i].cycleIssued = -1;      
     	instructionStatus[i].cycleExecuted = -1;     
     	instructionStatus[i].cycleWriteResult = -1; 
