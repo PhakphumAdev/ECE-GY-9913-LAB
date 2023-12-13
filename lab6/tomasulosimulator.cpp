@@ -326,6 +326,8 @@ int main(int argc, char **argv)
     	instructionStatus[i].cycleExecuted = -1;     
     	instructionStatus[i].cycleWriteResult = -1; 
 	}
+	// Initialize the reservation stations
+	ReservationStations reservationStations(hardwareConfig.LoadRSsize,hardwareConfig.StoreRSsize,hardwareConfig.AddRSsize,hardwareConfig.MultRSsize);
 	// Simulate Tomasulo:
 	// simulateTomasulo(registerResultStatus, instructionStatus, ...);
 
