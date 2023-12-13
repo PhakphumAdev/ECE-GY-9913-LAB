@@ -189,7 +189,7 @@ private:
 };
 
 // Function to simulate the Tomasulo algorithm
-void simulateTomasulo()
+void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStations& reservationStations,CommonDataBus& cdb,vector<InstructionStatus>& instructionStatus,vector<Instruction>& instructions)
 {
 
 	int thiscycle = 1; // start cycle: 1
@@ -328,8 +328,9 @@ int main(int argc, char **argv)
 	}
 	// Initialize the reservation stations
 	ReservationStations reservationStations(hardwareConfig.LoadRSsize,hardwareConfig.StoreRSsize,hardwareConfig.AddRSsize,hardwareConfig.MultRSsize);
+	CommonDataBus cdb;
 	// Simulate Tomasulo:
-	// simulateTomasulo(registerResultStatus, instructionStatus, ...);
+	simulateTomasulo(registerResultStatus,reservationStations,cdb,instructionStatus, instructions);
 
 /*********************************** ↑↑↑ Todo: Implement by you ↑↑↑ ******************************************/
 
