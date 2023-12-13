@@ -63,6 +63,10 @@ class RegisterResultStatuses
 {
 public:
 	// ...
+	void addRegister(string name,bool status){
+		_registers.push_back({name,status});
+	}
+
 
 /*********************************** ↑↑↑ Todo: Implement by you ↑↑↑ ******************************************/
 	/*
@@ -208,7 +212,7 @@ int main(int argc, char **argv)
 	vector<Instruction>instruction;
 	string op,dest,src1,src2;
 	while(trace >> op >> dest >> src1 >> src2){
-		cout << op << ' ' << dest << ' ' << src1 << ' ' << src2 << "\n";
+		// cout << op << ' ' << dest << ' ' << src1 << ' ' << src2 << "\n";
 			Instruction dummy;
 			dummy.imm = -1;
 			dummy.dest = dest;
@@ -241,11 +245,20 @@ int main(int argc, char **argv)
 	// Initialize the register result status
 	// RegisterResultStatuses registerResultStatus();
 	// ...
-
+	RegisterResultStatuses registerResultStatus;
+	for(int i=0;i<hardwareConfig.FRegSize;i++){
+		string L = "L";
+		L+=(i+'0');
+		registerResultStatus.addRegister(L,false);
+	}
 	// Initialize the instruction status table
-	vector<InstructionStatus> instructionStatus;
+	vector<InstructionStatus> instructionStatus(instruction.size());
 	// ...
-
+	for(int i=0;i<instruction.size();i++){
+		instructionStatus[i].cycleIssued = -1;      
+    	instructionStatus[i].cycleExecuted = -1;     
+    	instructionStatus[i].cycleWriteResult = -1; 
+	}
 	// Simulate Tomasulo:
 	// simulateTomasulo(registerResultStatus, instructionStatus, ...);
 
