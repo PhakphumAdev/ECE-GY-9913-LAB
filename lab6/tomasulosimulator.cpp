@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <limits>
+#include <queue>
 using namespace std;
 using std::cout;
 using std::endl;
@@ -57,8 +58,13 @@ struct Instruction{
 	Operation op;
 	string dest,src1,src2;
 	int imm;
+	InstructionStatus status;
 };
-
+struct compareInstruction{
+	bool operator() (Instruction const& i1, Instruction const& i2){
+		return i1.status.cycleIssued > i2.status.cycleIssued;
+	}
+};
 class RegisterResultStatuses
 {
 public:
@@ -167,7 +173,19 @@ private:
 class CommonDataBus
 {
 public:
-	// ...
+	void addQ(Instruction instruction){
+		pq.push(instruction);
+	}
+	Instruction getTop(){
+		return pq.top();
+	}
+	Instruction pop(){
+		Instruction ret = pq.top();
+		pq.pop();
+		return ret;
+	}
+private:
+	priority_queue<Instruction,vector<Instruction>,compareInstruction> pq;
 };
 
 // Function to simulate the Tomasulo algorithm
@@ -266,6 +284,9 @@ int main(int argc, char **argv)
 			Instruction dummy;
 			dummy.imm = -1;
 			dummy.dest = dest;
+			dummy.status.cycleExecuted = -1;
+			dummy.status.cycleIssued = -1;
+			dummy.status.cycleWriteResult = -1;
 			if(op=="LOAD"){
 				dummy.op = LOAD;
 				dummy.imm = stoi(src1);
