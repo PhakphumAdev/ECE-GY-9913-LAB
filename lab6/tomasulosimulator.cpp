@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <limits>
 #include <queue>
+#include <string>
 using namespace std;
 using std::cout;
 using std::endl;
@@ -53,17 +54,13 @@ struct RegisterResultStatus
 	bool dataReady;
 };
 
+
 /*********************************** ↓↓↓ Todo: Implement by you ↓↓↓ ******************************************/
 struct Instruction{
 	Operation op;
-	string dest,src1,src2;
+	int dest,src1,src2;
 	int imm;
 	InstructionStatus status;
-};
-struct compareInstruction{
-	bool operator() (Instruction const& i1, Instruction const& i2){
-		return i1.status.cycleIssued > i2.status.cycleIssued;
-	}
 };
 class RegisterResultStatuses
 {
@@ -71,7 +68,10 @@ public:
 	// ...
     RegisterResultStatuses(int numberOfRegisters) {
         for (int i = 0; i < numberOfRegisters; ++i) {
-            _registers.push_back({"", false}); // Initialize with empty reservation station name and data not ready
+			RegisterResultStatus dummy;
+			dummy.ReservationStationName = "";
+			dummy.dataReady = false;
+            _registers.push_back(dummy); // Initialize with empty reservation station name and data not ready
         }
     }
 
@@ -86,13 +86,10 @@ public:
         if (registerNumber >= 0 && registerNumber < _registers.size()) {
             return _registers[registerNumber];
         }
-        return {"", false}; // Return default status if register number is out of range
-    }
-
-	void resetStatuses() {
-        for (auto& reg : _registers) {
-            reg = {"", false};
-        }
+		RegisterResultStatus dummy;
+		dummy.ReservationStationName = "";
+		dummy.dataReady = false;
+        return dummy; // Return default status if register number is out of range
     }
 /*********************************** ↑↑↑ Todo: Implement by you ↑↑↑ ******************************************/
 	/*
@@ -122,43 +119,89 @@ struct ReservationStation
 {
 	// ...
 	Operation name;
+	string nameString;
 	int stationNumber;
 	bool busy;
 	Operation op;
 	int vj,vk;
 	string qj,qk;
+	bool inQ;
 	int remainCycle;
-	Instruction *instruction;
-
-	ReservationStation() : busy(false),qj(""),qk(""), remainCycle(0),instruction(nullptr) {}
+	int issuedCycle;
+	int cycleExecuted;
+	int numInstruction;
+	ReservationStation() : busy(false),inQ(false),qj(""),qk(""), remainCycle(-1) {}
 };
-class ReservationStations
+struct compareReservationStation{
+	bool operator() (ReservationStation const& r1, ReservationStation const& r2){
+		return r1.issuedCycle > r2.issuedCycle;
+	}
+};
+class CommonDataBus
+{
+public:
+	void addQ(ReservationStation r){
+		pq.push(r);
+	}
+	ReservationStation getTop(){
+		return pq.top();
+	}
+	ReservationStation pop(){
+		ReservationStation ret = pq.top();
+		pq.pop();
+		return ret;
+	}
+	bool isEmpty(){
+		if(pq.empty()){
+			return true;
+		}
+		return false;
+	}
+private:
+	priority_queue<ReservationStation,vector<ReservationStation>,compareReservationStation> pq;
+};class ReservationStations
 {
 public:
 	// ...
 	ReservationStations(int sizeLoad,int sizeStore, int sizeAdd, int sizeMult) {
         for(int i=0;i<sizeLoad;i++){
+			string load = "Load";
+			load+=to_string(i);
 			ReservationStation newOne = ReservationStation();
 			newOne.name = LOAD;
 			newOne.stationNumber = i;
+			newOne.nameString = load;
+			newOne.inQ = false;
 			_stations.push_back(newOne);
 		}
 		for(int i=0;i<sizeStore;i++){
+			string store = "Store";
+			store+=to_string(i);
 			ReservationStation newOne = ReservationStation();
 			newOne.name = STORE;
 			newOne.stationNumber = i;
+			newOne.inQ = false;
+			newOne.nameString = store;
 			_stations.push_back(newOne);
 		}
 		for(int i=0;i<sizeAdd;i++){
+			string add = "Add";
+			add+=to_string(i);
 			ReservationStation newOne = ReservationStation();
 			newOne.name = ADD;
 			newOne.stationNumber = i;
+			newOne.nameString = add;
+			newOne.inQ = false;
 			_stations.push_back(newOne);
 		}
 		for(int i=0;i<sizeMult;i++){
+			string mult = "Mult";
+			mult+=to_string(i);		
 			ReservationStation newOne = ReservationStation();
 			newOne.name = MULT;
 			newOne.stationNumber = i;
+			newOne.nameString = mult;
+			newOne.inQ = false;
 			_stations.push_back(newOne);
 		}
     }
@@ -176,52 +219,86 @@ public:
 		}
 		return false;
 	}
+	void addInstruction(Instruction instruction,int issuedCycle,RegisterResultStatuses &currentRegisterResultStatuses,int numInstruction){
+		for(int i=0;i<_stations.size();i++){
+			if( !_stations[i].busy&&(_stations[i].name == instruction.op || (instruction.op == SUB && _stations[i].name == ADD) || (instruction.op == DIV && _stations[i].name == MULT))){
+				_stations[i].busy = true;
+				_stations[i].op = instruction.op;
+				_stations[i].remainCycle = OperationCycle[instruction.op];
+				_stations[i].issuedCycle = issuedCycle;
+				_stations[i].numInstruction = numInstruction;
+				_stations[i].inQ = false;
+				if(instruction.op != LOAD && instruction.op != STORE){
+					//check if operands data is avaliable 
+					RegisterResultStatus src1 = currentRegisterResultStatuses.getStatus(instruction.src1);
+					RegisterResultStatus src2 = currentRegisterResultStatuses.getStatus(instruction.src2);
+					if(src1.dataReady){
+						_stations[i].vj = 1;// don't care value
+					}
+					else{
+						_stations[i].qj = src1.ReservationStationName;
+					}
+					if(src2.dataReady){
+						_stations[i].vk = 1; // don't care value
+					}
+					else{
+						_stations[i].qk = src2.ReservationStationName;
+					}
+				}
+				else{
+					// LOAD and STORE always use immi
+					_stations[i].vj = instruction.imm;
+				}
+				currentRegisterResultStatuses.updateStatus(instruction.dest,_stations[i].nameString,false);	
+				return;		
+			}
+		}
+	}
+	bool getReservationStatus(string stationName){
+		for(int i=0;i<_stations.size();i++){
+			if(_stations[i].nameString == stationName){
+				return _stations[i].busy;
+			}
+		}
+		return false;
+	}
+	void updateTable(CommonDataBus &cdb,RegisterResultStatuses &currentRegisterResultStatuses,int thiscycle){
+		for(int i=0;i<_stations.size();i++){
+			string src1 = _stations[i].qj;
+			string src2 = _stations[i].qk;
+			if((_stations[i].busy && !getReservationStatus(src1) && !getReservationStatus(src2)) || (_stations[i].busy&&_stations[i].name==LOAD) || (_stations[i].busy&&_stations[i].name==STORE)) {
+				//check if all sources are ready so we can decrease its remaining cycle
+				_stations[i].remainCycle--;
+			}
+			if(_stations[i].busy&&_stations[i].remainCycle==0){
+				_stations[i].cycleExecuted = thiscycle;
+				if(!_stations[i].inQ){
+					_stations[i].inQ = true;
+					cdb.addQ(_stations[i]);
+				}
+			}
+		}
+	}
+	void freeStation(string stationName){
+		for(int i=0;i<_stations.size();i++){
+			if(_stations[i].nameString == stationName){
+				_stations[i].busy = false;
+				_stations[i].cycleExecuted = -1;
+				_stations[i].numInstruction = -1;
+				_stations[i].remainCycle = -1;
+				_stations[i].vk = -1;
+				_stations[i].vj = -1;
+				_stations[i].qj = "";
+				_stations[i].qk = "";
+				_stations[i].issuedCycle = -1;
+				_stations[i].inQ = false;
+				return;
+			}
+		}
+	}
 
 private:
 	vector<ReservationStation> _stations;
-};
-
-class CommonDataBus
-{
-public:
-	void addQ(Instruction instruction){
-		pq.push(instruction);
-	}
-	Instruction getTop(){
-		return pq.top();
-	}
-	Instruction pop(){
-		Instruction ret = pq.top();
-		pq.pop();
-		return ret;
-	}
-private:
-	priority_queue<Instruction,vector<Instruction>,compareInstruction> pq;
-};
-
-// Function to simulate the Tomasulo algorithm
-void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStations& reservationStations,CommonDataBus& cdb,vector<InstructionStatus>& instructionStatus,vector<Instruction>& instructions)
-{
-
-	int thiscycle = 1; // start cycle: 1
-	int numInstruction = 0;
-	while (thiscycle < 100000000)
-	{
-
-		// Reservation Stations should be updated every cycle, and broadcast to Common Data Bus
-		// ...
-
-		// Issue new instruction in each cycle
-		// ...
-		if(reservationStations.isFreeStationAvailable(instructions[numInstruction].op))
-		// At the end of this cycle, we need this function to print all registers status for grading
-		// PrintRegisterResultStatus4Grade(outputtracename, registerResultStatus, thiscycle);
-
-		++thiscycle;
-
-		// The simulator should stop when all instructions are finished.
-		// ...
-	}
 };
 
 /*********************************** ↑↑↑ Todo: Implement by you ↑↑↑ ******************************************/
@@ -264,6 +341,49 @@ void PrintRegisterResultStatus4Grade(const string &filename,
 	outfile.close();
 }
 
+// Function to simulate the Tomasulo algorithm
+void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStations& reservationStations,CommonDataBus& cdb,vector<InstructionStatus>& instructionStatus,vector<Instruction>& instructions)
+{
+
+	int thiscycle = 1; // start cycle: 1
+	int numInstruction = 0;
+	int completedInstruction = 0;
+	while (thiscycle < 100000000)
+	{
+
+		// Reservation Stations should be updated every cycle, and broadcast to Common Data Bus
+		// ...
+		if(!cdb.isEmpty()){
+			ReservationStation broadcast = cdb.getTop();
+			cdb.pop();
+			//free that station
+			reservationStations.freeStation(broadcast.nameString);
+			//update register value
+			registerStatuses.updateStatus(instructions[broadcast.numInstruction].dest,broadcast.nameString,true);
+			instructionStatus[broadcast.numInstruction].cycleWriteResult = thiscycle;
+			instructionStatus[broadcast.numInstruction].cycleExecuted = broadcast.cycleExecuted;
+			completedInstruction++;
+		}
+		reservationStations.updateTable(cdb,registerStatuses,thiscycle);
+		// Issue new instruction in each cycle
+		// ...
+		if(reservationStations.isFreeStationAvailable(instructions[numInstruction].op)){
+			instructions[numInstruction].status.cycleIssued = thiscycle;
+			instructionStatus[numInstruction].cycleIssued = thiscycle;
+			reservationStations.addInstruction(instructions[numInstruction],thiscycle,registerStatuses,numInstruction);
+			numInstruction++;
+		}
+		// At the end of this cycle, we need this function to print all registers status for grading
+		PrintRegisterResultStatus4Grade(outputtracename, registerStatuses, thiscycle);
+		++thiscycle;
+
+		// The simulator should stop when all instructions are finished.
+		// ...
+		if(completedInstruction == instructions.size()){
+			break;
+		}
+	}
+};
 int main(int argc, char **argv)
 {
 	if (argc > 1)
@@ -293,7 +413,8 @@ int main(int argc, char **argv)
 		// cout << op << ' ' << dest << ' ' << src1 << ' ' << src2 << "\n";
 			Instruction dummy;
 			dummy.imm = -1;
-			dummy.dest = dest;
+			dest.erase(0,1);
+			dummy.dest = stoi(dest);
 			dummy.status.cycleExecuted = -1;
 			dummy.status.cycleIssued = -1;
 			dummy.status.cycleWriteResult = -1;
@@ -318,8 +439,10 @@ int main(int argc, char **argv)
 				dummy.op = DIV;
 			}
 			if(dummy.imm==-1){
-				dummy.src1 = src1;
-				dummy.src2 = src2;
+				src1.erase(0,1);
+				src2.erase(0,1);
+				dummy.src1 = stoi(src1);
+				dummy.src2 = stoi(src2);
 			}
 			instructions.push_back(dummy);
 	}
