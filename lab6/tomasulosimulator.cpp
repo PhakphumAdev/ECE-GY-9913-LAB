@@ -283,10 +283,12 @@ public:
 					bool src2Ready=false;
 					if(_stations[i].qj=="ready" || !getReservationStatus(src1)){
 						src1Ready = true;
+						_stations[i].qj = "ready";
 					}
 					// check if src2 is ready
 					if(_stations[i].qk=="ready" || !getReservationStatus(src2)){
 						src2Ready = true;
+						_stations[i].qk = "ready";
 					}
 					// if both true then 
 					if(src1Ready && src2Ready)
@@ -412,7 +414,7 @@ void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStatio
 
 		// The simulator should stop when all instructions are finished.
 		// ...
-		if(checkComplete(instructionStatus) || thiscycle == 500){
+		if(checkComplete(instructionStatus)){
 			break;
 		}
 	}
