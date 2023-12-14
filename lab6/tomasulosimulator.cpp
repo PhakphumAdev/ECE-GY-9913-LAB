@@ -82,7 +82,7 @@ public:
         }
     }
 
-  	RegisterResultStatus getStatus(int registerNumber) const {
+  	RegisterResultStatus getStatus(int registerNumber)  {
         if (registerNumber >= 0 && registerNumber < _registers.size()) {
             return _registers[registerNumber];
         }
@@ -152,14 +152,12 @@ public:
 		return ret;
 	}
 	bool isEmpty(){
-		if(pq.empty()){
-			return true;
-		}
-		return false;
+		return pq.empty();
 	}
 private:
 	priority_queue<ReservationStation,vector<ReservationStation>,compareReservationStation> pq;
-};class ReservationStations
+};
+class ReservationStations
 {
 public:
 	// ...
@@ -234,12 +232,14 @@ public:
 					RegisterResultStatus src2 = currentRegisterResultStatuses.getStatus(instruction.src2);
 					if(src1.dataReady){
 						_stations[i].vj = 1;// don't care value
+						_stations[i].qj = "ready";
 					}
 					else{
 						_stations[i].qj = src1.ReservationStationName;
 					}
 					if(src2.dataReady){
 						_stations[i].vk = 1; // don't care value
+						_stations[i].qk = "ready";
 					}
 					else{
 						_stations[i].qk = src2.ReservationStationName;
@@ -253,7 +253,9 @@ public:
 					// LOAD and STORE always use immi
 					_stations[i].vj = instruction.imm;
 				}
-				currentRegisterResultStatuses.updateStatus(instruction.dest,_stations[i].nameString,false);	
+				if(instruction.op != STORE){
+					currentRegisterResultStatuses.updateStatus(instruction.dest,_stations[i].nameString,false);	
+				}
 				return;		
 			}
 		}
@@ -270,9 +272,28 @@ public:
 		for(int i=0;i<_stations.size();i++){
 			string src1 = _stations[i].qj;
 			string src2 = _stations[i].qk;
-			if((_stations[i].busy && !getReservationStatus(src1) && !getReservationStatus(src2)) || (_stations[i].busy&&_stations[i].name==LOAD) || (_stations[i].busy&&_stations[i].name==STORE)) {
-				//check if all sources are ready so we can decrease its remaining cycle
-				_stations[i].remainCycle--;
+			if(_stations[i].busy && _stations[i].remainCycle>0){
+				// if LOAD or STORE we don't have to check reservation 
+				if(_stations[i].op == LOAD || _stations[i].op == STORE){
+					_stations[i].remainCycle -- ;
+				}
+				else{
+					// check if src1 is ready
+					bool src1Ready=false;
+					bool src2Ready=false;
+					if(_stations[i].qj=="ready" || !getReservationStatus(src1)){
+						src1Ready = true;
+					}
+					// check if src2 is ready
+					if(_stations[i].qk=="ready" || !getReservationStatus(src2)){
+						src2Ready = true;
+					}
+					// if both true then 
+					if(src1Ready && src2Ready)
+					{
+						_stations[i].remainCycle--;
+					}
+				}
 			}
 			if(_stations[i].busy&&_stations[i].remainCycle==0){
 				_stations[i].cycleExecuted = thiscycle;
@@ -345,13 +366,20 @@ void PrintRegisterResultStatus4Grade(const string &filename,
 	outfile.close();
 }
 
+bool checkComplete(vector<InstructionStatus> statuses){
+	for(int i=0;i<statuses.size();i++){
+		if(statuses[i].cycleWriteResult==-1){
+			return false;
+		}
+	}
+	return true;
+}
 // Function to simulate the Tomasulo algorithm
 void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStations& reservationStations,CommonDataBus& cdb,vector<InstructionStatus>& instructionStatus,vector<Instruction>& instructions)
 {
 
 	int thiscycle = 1; // start cycle: 1
 	int numInstruction = 0;
-	int completedInstruction = 0;
 	while (thiscycle < 100000000)
 	{
 
@@ -363,10 +391,11 @@ void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStatio
 			//free that station
 			reservationStations.freeStation(broadcast.nameString);
 			//update register value
-			registerStatuses.updateStatus(instructions[broadcast.numInstruction].dest,broadcast.nameString,true);
+			if(instructions[broadcast.numInstruction].op != STORE){
+				registerStatuses.updateStatus(instructions[broadcast.numInstruction].dest,broadcast.nameString,true);
+			}
 			instructionStatus[broadcast.numInstruction].cycleWriteResult = thiscycle;
 			instructionStatus[broadcast.numInstruction].cycleExecuted = broadcast.cycleExecuted;
-			completedInstruction++;
 		}
 		reservationStations.updateTable(cdb,registerStatuses,thiscycle);
 		// Issue new instruction in each cycle
@@ -383,7 +412,7 @@ void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStatio
 
 		// The simulator should stop when all instructions are finished.
 		// ...
-		if(completedInstruction == instructions.size()){
+		if(checkComplete(instructionStatus) || thiscycle == 500){
 			break;
 		}
 	}
