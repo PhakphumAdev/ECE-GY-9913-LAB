@@ -252,6 +252,8 @@ public:
 				else{
 					// LOAD and STORE always use immi
 					_stations[i].vj = instruction.imm;
+					_stations[i].qj = "ready";
+					_stations[i].qk = "ready";
 				}
 				if(instruction.op != STORE){
 					currentRegisterResultStatuses.updateStatus(instruction.dest,_stations[i].nameString,false);	
@@ -322,6 +324,15 @@ public:
 				return;
 			}
 		}
+		// let the stations that depend on this station know that their oprand is ready
+		for(int i=0;i<_stations.size();i++){
+			if(_stations[i].qj == stationName){
+				_stations[i].qj = "ready";
+			}
+			if(_stations[i].qk == stationName){
+				_stations[i].qk = "ready";
+			}
+		}
 	}
 
 private:
@@ -390,12 +401,12 @@ void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStatio
 		if(!cdb.isEmpty()){
 			ReservationStation broadcast = cdb.getTop();
 			cdb.pop();
-			//free that station
-			reservationStations.freeStation(broadcast.nameString);
 			//update register value
 			if(instructions[broadcast.numInstruction].op != STORE){
 				registerStatuses.updateStatus(instructions[broadcast.numInstruction].dest,broadcast.nameString,true);
 			}
+			//free that station
+			reservationStations.freeStation(broadcast.nameString);
 			instructionStatus[broadcast.numInstruction].cycleWriteResult = thiscycle;
 			instructionStatus[broadcast.numInstruction].cycleExecuted = broadcast.cycleExecuted;
 		}
