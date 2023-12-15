@@ -125,6 +125,7 @@ struct ReservationStation
 	Operation op;
 	int vj,vk;
 	string qj,qk;
+	int src1,src2;
 	bool inQ;
 	int remainCycle;
 	int issuedCycle;
@@ -170,6 +171,7 @@ public:
 			newOne.stationNumber = i;
 			newOne.nameString = load;
 			newOne.inQ = false;
+			newOne.busy = false;
 			_stations.push_back(newOne);
 		}
 		for(int i=0;i<sizeStore;i++){
@@ -179,6 +181,7 @@ public:
 			newOne.name = STORE;
 			newOne.stationNumber = i;
 			newOne.inQ = false;
+			newOne.busy = false;
 			newOne.nameString = store;
 			_stations.push_back(newOne);
 		}
@@ -190,6 +193,7 @@ public:
 			newOne.stationNumber = i;
 			newOne.nameString = add;
 			newOne.inQ = false;
+			newOne.busy = false;
 			_stations.push_back(newOne);
 		}
 		for(int i=0;i<sizeMult;i++){
@@ -200,6 +204,7 @@ public:
 			newOne.stationNumber = i;
 			newOne.nameString = mult;
 			newOne.inQ = false;
+			newOne.busy = false;
 			_stations.push_back(newOne);
 		}
     }
@@ -226,6 +231,8 @@ public:
 				_stations[i].issuedCycle = issuedCycle;
 				_stations[i].numInstruction = numInstruction;
 				_stations[i].inQ = false;
+				_stations[i].src1 = instruction.src1;
+				_stations[i].src2 = instruction.src2;
 				if(instruction.op != LOAD && instruction.op != STORE){
 					//check if operands data is avaliable 
 					RegisterResultStatus src1 = currentRegisterResultStatuses.getStatus(instruction.src1);
@@ -255,10 +262,10 @@ public:
 					_stations[i].qj = "ready";
 					_stations[i].qk = "ready";
 				}
-				if(instruction.op != STORE){
-					currentRegisterResultStatuses.updateStatus(instruction.dest,_stations[i].nameString,false);	
-				}
-				return;		
+			if(instruction.op != STORE){
+				currentRegisterResultStatuses.updateStatus(instruction.dest,_stations[i].nameString,false);	
+			}
+			return;		
 			}
 		}
 	}
@@ -272,17 +279,18 @@ public:
 	}
 	void updateTable(CommonDataBus &cdb,RegisterResultStatuses &currentRegisterResultStatuses,int thiscycle){
 		for(int i=0;i<_stations.size();i++){
-			string src1 = _stations[i].qj;
-			string src2 = _stations[i].qk;
+			RegisterResultStatus src1 = currentRegisterResultStatuses.getStatus(_stations[i].src1);
+			RegisterResultStatus src2 = currentRegisterResultStatuses.getStatus(_stations[i].src2);
 			if(_stations[i].busy && _stations[i].remainCycle>0){
 				bool src1Ready=false;
 				bool src2Ready=false;
-				if(_stations[i].qj=="ready" || !getReservationStatus(src1)){
+				//check at register
+				if(_stations[i].qj=="ready" || src1.dataReady){
 					src1Ready = true;
 					_stations[i].qj = "ready";
 				}
 				// check if src2 is ready
-				if(_stations[i].qk=="ready" || !getReservationStatus(src2)){
+				if(_stations[i].qk=="ready" || src2.dataReady){
 					src2Ready = true;
 					_stations[i].qk = "ready";
 				}
@@ -294,6 +302,7 @@ public:
 			}
 			if(_stations[i].busy&&_stations[i].remainCycle==0){
 				_stations[i].cycleExecuted = thiscycle;
+				_stations[i].busy = false;
 				if(!_stations[i].inQ){
 					_stations[i].inQ = true;
 					cdb.addQ(_stations[i]);
@@ -399,7 +408,7 @@ void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStatio
 				registerStatuses.updateStatus(instructions[broadcast.numInstruction].dest,broadcast.nameString,true);
 			}
 			//free that station
-			reservationStations.freeStation(broadcast.nameString);
+			// reservationStations.freeStation(broadcast.nameString);
 			instructionStatus[broadcast.numInstruction].cycleWriteResult = thiscycle;
 			instructionStatus[broadcast.numInstruction].cycleExecuted = broadcast.cycleExecuted;
 		}
