@@ -302,11 +302,12 @@ public:
 			}
 			if(_stations[i].busy&&_stations[i].remainCycle==0){
 				_stations[i].cycleExecuted = thiscycle;
-				_stations[i].busy = false;
 				if(!_stations[i].inQ){
 					_stations[i].inQ = true;
 					cdb.addQ(_stations[i]);
 				}
+				_stations[i].busy = false;
+				_stations[i].remainCycle = -1;
 			}
 		}
 	}
