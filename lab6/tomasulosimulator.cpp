@@ -275,28 +275,21 @@ public:
 			string src1 = _stations[i].qj;
 			string src2 = _stations[i].qk;
 			if(_stations[i].busy && _stations[i].remainCycle>0){
-				// if LOAD or STORE we don't have to check reservation 
-				if(_stations[i].op == LOAD || _stations[i].op == STORE){
-					_stations[i].remainCycle -- ;
+				bool src1Ready=false;
+				bool src2Ready=false;
+				if(_stations[i].qj=="ready" || !getReservationStatus(src1)){
+					src1Ready = true;
+					_stations[i].qj = "ready";
 				}
-				else{
-					// check if src1 is ready
-					bool src1Ready=false;
-					bool src2Ready=false;
-					if(_stations[i].qj=="ready" || !getReservationStatus(src1)){
-						src1Ready = true;
-						_stations[i].qj = "ready";
-					}
-					// check if src2 is ready
-					if(_stations[i].qk=="ready" || !getReservationStatus(src2)){
-						src2Ready = true;
-						_stations[i].qk = "ready";
-					}
-					// if both true then 
-					if(src1Ready && src2Ready)
-					{
-						_stations[i].remainCycle--;
-					}
+				// check if src2 is ready
+				if(_stations[i].qk=="ready" || !getReservationStatus(src2)){
+					src2Ready = true;
+					_stations[i].qk = "ready";
+				}
+				// if both true then 
+				if(src1Ready && src2Ready)
+				{
+					_stations[i].remainCycle--;
 				}
 			}
 			if(_stations[i].busy&&_stations[i].remainCycle==0){
