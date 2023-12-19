@@ -306,8 +306,8 @@ public:
 					_stations[i].inQ = true;
 					cdb.addQ(_stations[i]);
 				}
-				_stations[i].busy = false;
-				_stations[i].remainCycle = -1;
+				// _stations[i].busy = false;
+				// _stations[i].remainCycle = -1;
 			}
 		}
 	}
@@ -409,7 +409,7 @@ void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStatio
 				registerStatuses.updateStatus(instructions[broadcast.numInstruction].dest,broadcast.nameString,true);
 			}
 			//free that station
-			// reservationStations.freeStation(broadcast.nameString);
+			reservationStations.freeStation(broadcast.nameString);
 			instructionStatus[broadcast.numInstruction].cycleWriteResult = thiscycle;
 			instructionStatus[broadcast.numInstruction].cycleExecuted = broadcast.cycleExecuted;
 		}
