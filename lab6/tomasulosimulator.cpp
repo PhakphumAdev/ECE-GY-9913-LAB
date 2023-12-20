@@ -327,15 +327,6 @@ public:
 				return;
 			}
 		}
-		// let the stations that depend on this station know that their oprand is ready
-		for(int i=0;i<_stations.size();i++){
-			if(_stations[i].qj == stationName){
-				_stations[i].qj = "ready";
-			}
-			if(_stations[i].qk == stationName){
-				_stations[i].qk = "ready";
-			}
-		}
 	}
 
 private:
