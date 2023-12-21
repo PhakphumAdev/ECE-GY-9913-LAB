@@ -233,8 +233,31 @@ public:
 				_stations[i].inQ = false;
 				_stations[i].src1 = instruction.src1;
 				_stations[i].src2 = instruction.src2;
-				if(instruction.op != LOAD && instruction.op != STORE){
-					//check if operands data is avaliable 
+				if(instruction.op == LOAD){
+					// LOAD always use immi and can proceed instantly after this cycle
+					_stations[i].vj = instruction.imm;
+					_stations[i].qj = "ready";
+					_stations[i].qk = "ready";
+				}
+				else if(instruction.op == STORE){
+					// in STORE case, dest field = src
+					_stations[i].src1 = instruction.dest;
+					// check if operand data is available
+					RegisterResultStatus src = currentRegisterResultStatuses.getStatus(instruction.dest);
+					if(src.dataReady){
+						//ready to go
+						_stations[i].qj = "ready";
+						_stations[i].qk = "ready";						
+					}
+					else{
+						_stations[i].qj = src.ReservationStationName;
+						_stations[i].qk = "ready";
+						//also has to wait
+						_stations[i].remainCycle++;
+					}
+				}
+				else{
+					//check if operands data is available 
 					RegisterResultStatus src1 = currentRegisterResultStatuses.getStatus(instruction.src1);
 					RegisterResultStatus src2 = currentRegisterResultStatuses.getStatus(instruction.src2);
 					if(src1.dataReady){
@@ -256,12 +279,6 @@ public:
 						_stations[i].remainCycle++;
 					}
 				}
-				else{
-					// LOAD and STORE always use immi
-					_stations[i].vj = instruction.imm;
-					_stations[i].qj = "ready";
-					_stations[i].qk = "ready";
-				}
 			if(instruction.op != STORE){
 				currentRegisterResultStatuses.updateStatus(instruction.dest,_stations[i].nameString,false);	
 			}
@@ -282,22 +299,36 @@ public:
 			RegisterResultStatus src1 = currentRegisterResultStatuses.getStatus(_stations[i].src1);
 			RegisterResultStatus src2 = currentRegisterResultStatuses.getStatus(_stations[i].src2);
 			if(_stations[i].busy && _stations[i].remainCycle>0){
-				bool src1Ready=false;
-				bool src2Ready=false;
-				//check at register
-				if(_stations[i].qj=="ready" || src1.dataReady){
-					src1Ready = true;
-					_stations[i].qj = "ready";
+				//LOAD we can always proceed
+				if(_stations[i].op == LOAD){
+					_stations[i].remainCycle -- ;
 				}
-				// check if src2 is ready
-				if(_stations[i].qk=="ready" || src2.dataReady){
-					src2Ready = true;
-					_stations[i].qk = "ready";
+				else if(_stations[i].op == STORE){
+					//STORE has to check its src first -> src1
+					if(src1.dataReady || _stations[i].qj == "ready"){
+						//operand ready, we can proceed
+						_stations[i].qj = "ready";
+						_stations[i].remainCycle--;
+					}
 				}
-				// if both true then 
-				if(src1Ready && src2Ready)
-				{
-					_stations[i].remainCycle--;
+				else{
+					bool src1Ready=false;
+					bool src2Ready=false;
+					//check at register
+					if(_stations[i].qj=="ready" || src1.dataReady){
+						src1Ready = true;
+						_stations[i].qj = "ready";
+					}
+					// check if src2 is ready
+					if(_stations[i].qk=="ready" || src2.dataReady){
+						src2Ready = true;
+						_stations[i].qk = "ready";
+					}
+					// if both true then 
+					if(src1Ready && src2Ready)
+					{
+						_stations[i].remainCycle--;
+					}
 				}
 			}
 			if(_stations[i].busy&&_stations[i].remainCycle==0){
@@ -306,8 +337,6 @@ public:
 					_stations[i].inQ = true;
 					cdb.addQ(_stations[i]);
 				}
-				// _stations[i].busy = false;
-				// _stations[i].remainCycle = -1;
 			}
 		}
 	}
