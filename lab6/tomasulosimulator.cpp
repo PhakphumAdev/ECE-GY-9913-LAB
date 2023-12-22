@@ -171,7 +171,6 @@ public:
 			newOne.stationNumber = i;
 			newOne.nameString = load;
 			newOne.inQ = false;
-			newOne.busy = false;
 			_stations.push_back(newOne);
 		}
 		for(int i=0;i<sizeStore;i++){
@@ -181,7 +180,6 @@ public:
 			newOne.name = STORE;
 			newOne.stationNumber = i;
 			newOne.inQ = false;
-			newOne.busy = false;
 			newOne.nameString = store;
 			_stations.push_back(newOne);
 		}
@@ -193,7 +191,6 @@ public:
 			newOne.stationNumber = i;
 			newOne.nameString = add;
 			newOne.inQ = false;
-			newOne.busy = false;
 			_stations.push_back(newOne);
 		}
 		for(int i=0;i<sizeMult;i++){
@@ -204,7 +201,6 @@ public:
 			newOne.stationNumber = i;
 			newOne.nameString = mult;
 			newOne.inQ = false;
-			newOne.busy = false;
 			_stations.push_back(newOne);
 		}
     }
@@ -233,31 +229,8 @@ public:
 				_stations[i].inQ = false;
 				_stations[i].src1 = instruction.src1;
 				_stations[i].src2 = instruction.src2;
-				if(instruction.op == LOAD){
-					// LOAD always use immi and can proceed instantly after this cycle
-					_stations[i].vj = instruction.imm;
-					_stations[i].qj = "ready";
-					_stations[i].qk = "ready";
-				}
-				else if(instruction.op == STORE){
-					// in STORE case, dest field = src
-					_stations[i].src1 = instruction.dest;
-					// check if operand data is available
-					RegisterResultStatus src = currentRegisterResultStatuses.getStatus(instruction.dest);
-					if(src.dataReady){
-						//ready to go
-						_stations[i].qj = "ready";
-						_stations[i].qk = "ready";						
-					}
-					else{
-						_stations[i].qj = src.ReservationStationName;
-						_stations[i].qk = "ready";
-						//also has to wait
-						_stations[i].remainCycle++;
-					}
-				}
-				else{
-					//check if operands data is available 
+				if(instruction.op != LOAD && instruction.op != STORE){
+					//check if operands data is avaliable 
 					RegisterResultStatus src1 = currentRegisterResultStatuses.getStatus(instruction.src1);
 					RegisterResultStatus src2 = currentRegisterResultStatuses.getStatus(instruction.src2);
 					if(src1.dataReady){
@@ -279,10 +252,31 @@ public:
 						_stations[i].remainCycle++;
 					}
 				}
-			if(instruction.op != STORE){
-				currentRegisterResultStatuses.updateStatus(instruction.dest,_stations[i].nameString,false);	
-			}
-			return;		
+				else if(instruction.op == STORE){
+					// in STORE case, dest field = src
+					_stations[i].src1 = instruction.dest;
+					// check if operand data is available
+					RegisterResultStatus src = currentRegisterResultStatuses.getStatus(instruction.dest);
+					if(src.dataReady){
+						//ready to go
+						_stations[i].qj = "ready";
+						_stations[i].qk = "ready";						
+					}
+					else{
+						_stations[i].qj = src.ReservationStationName;
+						_stations[i].qk = "ready";
+						//also has to wait
+						_stations[i].remainCycle++;
+					}
+				}
+				else{
+					// LOAD always use immi
+					_stations[i].vj = instruction.imm;
+				}
+				if(instruction.op != STORE){
+					currentRegisterResultStatuses.updateStatus(instruction.dest,_stations[i].nameString,false);	
+				}
+				return;		
 			}
 		}
 	}
@@ -296,31 +290,33 @@ public:
 	}
 	void updateTable(CommonDataBus &cdb,RegisterResultStatuses &currentRegisterResultStatuses,int thiscycle){
 		for(int i=0;i<_stations.size();i++){
-			RegisterResultStatus src1 = currentRegisterResultStatuses.getStatus(_stations[i].src1);
-			RegisterResultStatus src2 = currentRegisterResultStatuses.getStatus(_stations[i].src2);
+			string src1 = _stations[i].qj;
+			string src2 = _stations[i].qk;
+			RegisterResultStatus src1Register = currentRegisterResultStatuses.getStatus(_stations[i].src1);
+			RegisterResultStatus src2Register = currentRegisterResultStatuses.getStatus(_stations[i].src2);
 			if(_stations[i].busy && _stations[i].remainCycle>0){
-				//LOAD we can always proceed
+				// if LOAD or STORE we don't have to check reservation 
 				if(_stations[i].op == LOAD){
 					_stations[i].remainCycle -- ;
 				}
 				else if(_stations[i].op == STORE){
 					//STORE has to check its src first -> src1
-					if(src1.dataReady || _stations[i].qj == "ready"){
+					if(src1Register.dataReady || _stations[i].qj == "ready"){
 						//operand ready, we can proceed
 						_stations[i].qj = "ready";
 						_stations[i].remainCycle--;
 					}
 				}
 				else{
+					// check if src1 is ready
 					bool src1Ready=false;
 					bool src2Ready=false;
-					//check at register
-					if(_stations[i].qj=="ready" || src1.dataReady){
+					if(_stations[i].qj=="ready" || !getReservationStatus(src1)){
 						src1Ready = true;
 						_stations[i].qj = "ready";
 					}
 					// check if src2 is ready
-					if(_stations[i].qk=="ready" || src2.dataReady){
+					if(_stations[i].qk=="ready" || !getReservationStatus(src2)){
 						src2Ready = true;
 						_stations[i].qk = "ready";
 					}
@@ -424,12 +420,12 @@ void simulateTomasulo(RegisterResultStatuses& registerStatuses,ReservationStatio
 		if(!cdb.isEmpty()){
 			ReservationStation broadcast = cdb.getTop();
 			cdb.pop();
+			//free that station
+			reservationStations.freeStation(broadcast.nameString);
 			//update register value
 			if(instructions[broadcast.numInstruction].op != STORE){
 				registerStatuses.updateStatus(instructions[broadcast.numInstruction].dest,broadcast.nameString,true);
 			}
-			//free that station
-			reservationStations.freeStation(broadcast.nameString);
 			instructionStatus[broadcast.numInstruction].cycleWriteResult = thiscycle;
 			instructionStatus[broadcast.numInstruction].cycleExecuted = broadcast.cycleExecuted;
 		}
